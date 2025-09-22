@@ -1,8 +1,10 @@
 import { getPostBySlug, getAllPosts, markdownToHtml } from '@/lib/mdx';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import './prism.css';
 import Link from 'next/link';
+import Image from 'next/image';
+import { getSiteUrl } from '@/lib/site';
+import './prism.css';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -25,12 +27,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  const siteUrl = getSiteUrl();
+  const url = `${siteUrl}/blog/${post.slug}`;
   return {
     title: `${post.title} | 리뷰 활짝`,
     description: post.excerpt,
+    alternates: { canonical: url },
     openGraph: {
       title: post.title,
       description: post.excerpt,
+      url,
       type: 'article',
       publishedTime: post.date,
       authors: ['리뷰 활짝'],
@@ -91,13 +97,20 @@ export default async function PostPage({ params }: Props) {
             </div>
           )}
 
-          {/* {post.coverImage && (
+          {post.coverImage && (
             <div className="mb-8 rounded-xl overflow-hidden shadow-lg">
-              <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                <span className="text-6xl">📦</span>
+              <div className="relative aspect-video">
+                <Image
+                  src={post.coverImage}
+                  alt={post.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 800px"
+                  className="object-cover"
+                  priority={false}
+                />
               </div>
             </div>
-          )} */}
+          )}
         </header>
 
         <div

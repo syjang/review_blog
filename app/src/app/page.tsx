@@ -1,5 +1,13 @@
 import BlogList from '@/components/BlogList';
 import { getAllPosts } from '@/lib/mdx';
+import type { Metadata } from 'next';
+import { getSiteUrl } from '@/lib/site';
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: getSiteUrl(),
+  },
+};
 
 export default function HomePage() {
   const posts = getAllPosts();

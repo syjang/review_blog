@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from '@/lib/site';
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,11 +13,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = getSiteUrl();
+
 export const metadata: Metadata = {
-  title: "리뷰 활짝 - 제품 리뷰 블로그",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "리뷰 활짝 - 제품 리뷰 블로그",
+    template: "%s | 리뷰 활짝",
+  },
   description: "제품들의 솔직한 리뷰를 수집하고 공유합니다. 전자기기, 생활용품, 뷰티, 패션 등 다양한 카테고리의 상품 리뷰.",
   keywords: ["제품 리뷰", "상품 리뷰", "사용기", "구매 후기", "리뷰 활짝"],
   authors: [{ name: "리뷰 활짝" }],
+  alternates: {
+    canonical: siteUrl,
+  },
   icons: {
     icon: '/favicon.svg',
     apple: '/apple-icon.png',
@@ -24,8 +34,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "리뷰 활짝",
-    description: "제품 리뷰 블로그",
-    url: "https://your-domain.vercel.app",
+    description: "진짜 사용해본 제품들의 솔직한 리뷰",
+    url: siteUrl,
     siteName: "리뷰 활짝",
     locale: "ko_KR",
     type: "website",

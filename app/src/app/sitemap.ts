@@ -1,9 +1,10 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/mdx';
+import { getSiteUrl } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getAllPosts();
-  const baseUrl = 'https://your-domain.vercel.app';
+  const baseUrl = getSiteUrl();
 
   const postUrls = posts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
