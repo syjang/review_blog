@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useMemo } from 'react';
 
 interface Post {
@@ -60,13 +61,24 @@ export default function BlogList({ posts }: BlogListProps) {
             >
               <Link href={`/blog/${post.slug}`}>
                 <div className="aspect-[16/10] bg-gradient-to-br from-blue-100 to-purple-100 relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center text-6xl">
-                    {post.tags?.includes('전자기기') && '💻'}
-                    {post.tags?.includes('생활용품') && '🏠'}
-                    {post.tags?.includes('뷰티') && '💄'}
-                    {post.tags?.includes('패션') && '👕'}
-                    {!post.tags?.some(tag => ['전자기기', '생활용품', '뷰티', '패션'].includes(tag)) && '📦'}
-                  </div>
+                  {post.coverImage ? (
+                    <Image
+                      src={post.coverImage}
+                      alt={post.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      priority={false}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-6xl">
+                      {post.tags?.includes('전자기기') && '💻'}
+                      {post.tags?.includes('생활용품') && '🏠'}
+                      {post.tags?.includes('뷰티') && '💄'}
+                      {post.tags?.includes('패션') && '👕'}
+                      {!post.tags?.some(tag => ['전자기기', '생활용품', '뷰티', '패션'].includes(tag)) && '📦'}
+                    </div>
+                  )}
                 </div>
                 <div className="p-6">
                   <h2 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">

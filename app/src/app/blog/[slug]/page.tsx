@@ -2,6 +2,7 @@ import { getPostBySlug, getAllPosts, markdownToHtml } from '@/lib/mdx';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import './prism.css';
+import Link from 'next/link';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -90,13 +91,13 @@ export default async function PostPage({ params }: Props) {
             </div>
           )}
 
-          {post.coverImage && (
+          {/* {post.coverImage && (
             <div className="mb-8 rounded-xl overflow-hidden shadow-lg">
               <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
                 <span className="text-6xl">📦</span>
               </div>
             </div>
-          )}
+          )} */}
         </header>
 
         <div
@@ -106,7 +107,7 @@ export default async function PostPage({ params }: Props) {
 
         <footer className="mt-16 pt-8 border-t border-gray-200">
           <div className="flex justify-between items-center">
-            <a
+            <Link
               href="/"
               className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
             >
@@ -114,7 +115,7 @@ export default async function PostPage({ params }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               목록으로 돌아가기
-            </a>
+            </Link>
           </div>
         </footer>
       </div>

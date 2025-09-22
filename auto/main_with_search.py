@@ -7,6 +7,7 @@ import os
 from typing import TypedDict, List, Dict
 from datetime import datetime
 from dotenv import load_dotenv
+import uuid
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -18,7 +19,8 @@ from search_tools import WebSearcher, format_search_results
 load_dotenv()
 
 # LLM 설정
-llm = get_llm("gpt-oss", temperature=0.7)
+# llm = get_llm("gpt-oss", temperature=0.7)
+llm = get_llm("gemini-2.5-flash", temperature=0.5)
 
 # 웹 검색 도구
 searcher = WebSearcher()
@@ -33,6 +35,7 @@ class BlogState(TypedDict):
     current_post: dict
     feedback: str
     completed: bool
+    images: List[dict]
 
 
 # 노드 함수들
@@ -88,10 +91,33 @@ def research_product(state: BlogState) -> BlogState:
         len(search_results.get("basic_info", [])) +
         len(search_results.get("price_info", [])) +
         len(search_results.get("recent_news", [])) +
-        len(search_results.get("user_reviews", []))
+        len(search_results.get("user_reviews", [])) +
+        len(search_results.get("images", []))
     )
 
     print(f"✅ 총 {total_results}개의 정보 수집 완료")
+
+    return state
+
+
+def download_images(state: BlogState) -> BlogState:
+    """제품 이미지 다운로드 노드"""
+    product_name = state.get("product_name", "")
+    search_results = state.get("search_results", {})
+
+    print(f"🖼️ 제품 이미지 다운로드 중: {product_name}")
+
+    # 검색된 이미지들
+    images = search_results.get("images", [])
+
+    if images:
+        # 이미지 다운로드 실행
+        downloaded_images = searcher.download_product_images(product_name, images, max_downloads=3)
+        state["images"] = downloaded_images
+        print(f"✅ {len(downloaded_images)}개 이미지 다운로드 완료")
+    else:
+        print(f"⚠️ 다운로드할 이미지가 없습니다.")
+        state["images"] = []
 
     return state
 
@@ -119,6 +145,7 @@ def generate_content(state: BlogState) -> BlogState:
     system_prompt = """
     당신은 리뷰 블로그 '리뷰 활짝'의 컨텐츠 작성자입니다.
     제공된 검색 결과를 바탕으로 솔직하고 상세한 제품 리뷰를 작성해주세요.
+    최소 1000자이상 작성해주세요.
 
     리뷰 구조:
     1. 제품 소개
@@ -185,13 +212,21 @@ def format_search_context(search_results: Dict) -> str:
 
 
 def create_markdown(state: BlogState) -> BlogState:
-    """마크다운 파일 생성 (출처 포함)"""
+    """마크다운 파일 생성 (이미지 리뷰 중간 배치)"""
     current_post = state.get("current_post", {})
     content = current_post.get("content", "")
     product_name = state.get("product_name", "")
     search_results = state.get("search_results", {})
+    images = state.get("images", [])
 
     print(f"📝 마크다운 파일 생성 중...")
+
+    # 리뷰 내용을 섹션별로 나누기
+    sections = split_content_into_sections(content)
+    print(f"📊 리뷰 섹션 수: {len(sections)}")
+
+    # 이미지들을 섹션 사이에 배치
+    content_with_images = insert_images_between_sections(sections, images)
 
     # 참고 링크 생성
     references = "\n\n## 참고 자료\n\n"
@@ -199,17 +234,31 @@ def create_markdown(state: BlogState) -> BlogState:
         for info in search_results["basic_info"][:3]:
             references += f"- [{info['title']}]({info['url']})\n"
 
+    # 이미지 출처 정보
+    if images:
+        references += f"\n### 이미지 출처\n"
+        for img in images:
+            references += f"- [이미지 {images.index(img)+1}]({img['original_url']})\n"
+
     # 마크다운 포맷으로 변환
+    if images and images[0].get("filename"):
+        # 첫 번째 이미지의 실제 파일명 사용
+        primary_image = f"/images/{images[0]['filename']}"
+    else:
+        # 고유번호 기반 기본값
+        unique_id = str(uuid.uuid4())[:8]
+        primary_image = f"/images/review-{unique_id}-1.jpg"
+
     markdown_template = f"""---
 title: '{product_name} 리뷰 - 실사용 후기와 장단점'
 date: '{datetime.now().strftime("%Y-%m-%d")}'
 excerpt: '{product_name}에 대한 상세한 리뷰와 구매 가이드'
 category: '제품리뷰'
 tags: ['{product_name}', '리뷰', '실사용후기']
-image: '/images/{product_name.replace(" ", "-").lower()}.jpg'
+image: '{primary_image}'
 ---
 
-{content}
+{content_with_images}
 
 {references}
 
@@ -224,6 +273,58 @@ image: '/images/{product_name.replace(" ", "-").lower()}.jpg'
     return state
 
 
+def split_content_into_sections(content: str) -> List[str]:
+    """리뷰 내용을 섹션별로 나누기"""
+    sections = []
+    current_section = ""
+    lines = content.split('\n')
+
+    for line in lines:
+        if line.startswith('### ') and current_section.strip():
+            # 새로운 섹션이 시작되면 이전 섹션 저장
+            sections.append(current_section.strip())
+            current_section = line + '\n'
+        else:
+            current_section += line + '\n'
+
+    # 마지막 섹션 추가
+    if current_section.strip():
+        sections.append(current_section.strip())
+
+    return sections
+
+
+def insert_images_between_sections(sections: List[str], images: List[Dict]) -> str:
+    """섹션 사이에 이미지 배치"""
+    if not images:
+        return '\n'.join(sections)
+
+    result = []
+    images_used = 0
+    max_images = min(len(images), 3)  # 최대 3개 이미지 사용
+
+    # 첫 번째 섹션은 이미지 없이 추가
+    if sections:
+        result.append(sections[0])
+
+    # 나머지 섹션들 사이에 이미지 배치
+    for i in range(1, len(sections)):
+        # 이미지 추가 (사용 가능한 이미지 수 내에서)
+        if images_used < max_images and i <= max_images:
+            img = images[images_used]
+            image_caption = img.get('title', f'제품 이미지 {images_used + 1}')
+            image_md = f"\n![{image_caption}]({img['local_path']})\n"
+            if img.get('title'):
+                image_md += f"*{img['title']}*\n"
+            result.append(image_md)
+            images_used += 1
+
+        # 다음 섹션 추가
+        result.append(sections[i])
+
+    return '\n'.join(result)
+
+
 def save_post(state: BlogState) -> BlogState:
     """포스트 저장"""
     current_post = state.get("current_post", {})
@@ -232,9 +333,9 @@ def save_post(state: BlogState) -> BlogState:
 
     print(f"💾 포스트 저장 중...")
 
-    # 파일명 생성 (제품명 기반)
-    safe_name = product_name.replace(" ", "-").replace("/", "-").lower()
-    filename = f"{safe_name}-review-{datetime.now().strftime('%Y%m%d')}.md"
+    # 파일명 생성 (고유번호 기반)
+    unique_id = str(uuid.uuid4())[:8]  # UUID 앞 8자리 사용
+    filename = f"review-{unique_id}.md"
     filepath = f"../app/posts/{filename}"
 
     # 실제 파일 저장
@@ -317,6 +418,7 @@ def create_workflow():
     # 노드 추가
     workflow.add_node("analyze", analyze_task)
     workflow.add_node("research", research_product)  # 웹 검색 노드 추가
+    workflow.add_node("download_images", download_images)  # 이미지 다운로드 노드 추가
     workflow.add_node("generate", generate_content)
     workflow.add_node("review", review_content)
     workflow.add_node("markdown", create_markdown)
@@ -325,7 +427,8 @@ def create_workflow():
     # 엣지 설정
     workflow.set_entry_point("analyze")
     workflow.add_edge("analyze", "research")  # 분석 후 리서치
-    workflow.add_edge("research", "generate")  # 리서치 후 생성
+    workflow.add_edge("research", "download_images")  # 리서치 후 이미지 다운로드
+    workflow.add_edge("download_images", "generate")  # 이미지 다운로드 후 생성
     workflow.add_edge("generate", "review")
 
     # 조건부 엣지
@@ -374,7 +477,8 @@ def main():
         "posts": [],
         "current_post": {},
         "feedback": "",
-        "completed": False
+        "completed": False,
+        "images": []
     }
 
     # 워크플로우 실행

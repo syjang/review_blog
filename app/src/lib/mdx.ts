@@ -36,6 +36,9 @@ export function getAllPosts(): Post[] {
       const { data, content } = matter(fileContents);
       const stats = readingTime(content);
 
+      // front matter 호환: image -> coverImage 폴백
+      const coverImage = (data.coverImage || data.image) as string | undefined;
+
       return {
         slug,
         content,
@@ -44,7 +47,7 @@ export function getAllPosts(): Post[] {
         excerpt: data.excerpt || content.slice(0, 160) + '...',
         readingTime: stats.text,
         tags: data.tags || [],
-        coverImage: data.coverImage,
+        coverImage,
         rating: data.rating,
       };
     });
@@ -70,6 +73,9 @@ export function getPostBySlug(slug: string): Post | undefined {
   const { data, content } = matter(fileContents);
   const stats = readingTime(content);
 
+  // front matter 호환: image -> coverImage 폴백
+  const coverImage = (data.coverImage || data.image) as string | undefined;
+
   return {
     slug: realSlug,
     content,
@@ -78,7 +84,7 @@ export function getPostBySlug(slug: string): Post | undefined {
     excerpt: data.excerpt || content.slice(0, 160) + '...',
     readingTime: stats.text,
     tags: data.tags || [],
-    coverImage: data.coverImage,
+    coverImage,
     rating: data.rating,
   };
 }

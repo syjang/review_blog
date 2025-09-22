@@ -51,6 +51,13 @@ MODELS = {
         "supports_functions": False,
         "cost": "low"
     },
+    "gemini-2.5-flash": {
+        "provider": "google",
+        "model": "gemini-2.5-flash",
+        "supports_functions": False,
+        "cost": "low"
+    },
+
 
     # Ollama 로컬 모델 (langchain-community 설치 필요)
     "gpt-oss": {

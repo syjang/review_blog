@@ -12,7 +12,7 @@ export default function HomePage() {
             리뷰 활짝
           </h1>
           <p className="text-xl text-slate-600">
-            진짜 사용해본 제품들의 솔직한 리뷰
+            세상의 모든 제품 리뷰
           </p>
         </header>
 

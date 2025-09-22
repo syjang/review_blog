@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "리뷰 활짝 - 진짜 사용해본 제품 리뷰",
-  description: "실제 구매하고 사용해본 제품들의 솔직한 리뷰를 공유합니다. 전자기기, 생활용품, 뷰티, 패션 등 다양한 카테고리의 상품 리뷰.",
+  title: "리뷰 활짝 - 제품 리뷰 블로그",
+  description: "제품들의 솔직한 리뷰를 수집하고 공유합니다. 전자기기, 생활용품, 뷰티, 패션 등 다양한 카테고리의 상품 리뷰.",
   keywords: ["제품 리뷰", "상품 리뷰", "사용기", "구매 후기", "리뷰 활짝"],
   authors: [{ name: "리뷰 활짝" }],
   icons: {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "리뷰 활짝",
-    description: "진짜 사용해본 제품들의 솔직한 리뷰",
+    description: "제품 리뷰 블로그",
     url: "https://your-domain.vercel.app",
     siteName: "리뷰 활짝",
     locale: "ko_KR",

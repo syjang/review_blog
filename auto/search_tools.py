@@ -1,13 +1,16 @@
 """
 웹 검색 도구 모음
-제품 리뷰를 위한 최신 정보 검색
+제품 리뷰를 위한 최신 정보 검색 및 이미지 검색
 """
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from typing import List, Dict
 import time
 from random import uniform
-import httpx
+import os
+import requests
+import urllib.parse
+
 
 
 class WebSearcher:
@@ -25,6 +28,7 @@ class WebSearcher:
         }
         self.delay_range = (2.0, 4.0)  # 요청 간 지연 시간 범위 (증가)
         self.max_retries = 3  # 최대 재시도 횟수
+        self.image_save_dir = "../app/public/images"  # 이미지 저장 디렉토리
 
     def _search_with_retry(self, search_func, *args, **kwargs):
         """
@@ -42,7 +46,7 @@ class WebSearcher:
                     time.sleep(uniform(0.5, 1.0))
 
                 # 매번 새로운 DDGS 인스턴스 생성 (세션 초기화)
-                with DDGS(headers=self.headers, timeout=30) as ddgs:
+                with DDGS(timeout=30) as ddgs:
                     results = search_func(ddgs, *args, **kwargs)
 
                 # 성공하면 다음 요청을 위해 지연
@@ -227,6 +231,173 @@ class WebSearcher:
             print(f"❌ 리뷰 검색 오류: {e}")
             return []
 
+    def search_product_images(self, product_name: str, max_results: int = 5) -> List[Dict]:
+        """
+        제품 이미지 검색
+
+        Args:
+            product_name: 검색할 제품명
+            max_results: 최대 결과 수
+
+        Returns:
+            이미지 정보 리스트
+        """
+        print(f"🖼️ '{product_name}' 이미지 검색 중...")
+
+        try:
+            # 제품 이미지 검색
+            search_query = f"{product_name} 제품 사진"
+
+            # 재시도 로직이 포함된 이미지 검색
+            results = self._search_with_retry(
+                lambda ddgs: list(ddgs.images(
+                    search_query,
+                    max_results=max_results,
+                    region='kr-kr'
+                ))
+            )
+
+            images = []
+            for result in results:
+                # 실제 이미지 URL 찾기 (image > thumbnail > url 순서로 우선순위)
+                image_url = result.get("image") or result.get("thumbnail") or result.get("url", "")
+
+                images.append({
+                    "title": result.get("title", ""),
+                    "url": image_url,  # 실제 이미지 URL
+                    "thumbnail": result.get("thumbnail", ""),
+                    "source": result.get("source", ""),
+                    "width": result.get("width", 0),
+                    "height": result.get("height", 0)
+                })
+
+            return images
+
+        except Exception as e:
+            print(f"❌ 이미지 검색 오류: {e}")
+            return []
+
+    def get_image_extension(self, image_url: str, response) -> str:
+        """
+        이미지 URL과 응답에서 실제 확장자 추출
+
+        Args:
+            image_url: 이미지 URL
+            response: HTTP 응답 객체
+
+        Returns:
+            이미지 확장자 (소문자)
+        """
+        # Content-Type에서 확장자 확인
+        content_type = response.headers.get('content-type', '')
+        if 'jpeg' in content_type or 'jpg' in content_type:
+            return 'jpg'
+        elif 'png' in content_type:
+            return 'png'
+        elif 'gif' in content_type:
+            return 'gif'
+        elif 'webp' in content_type:
+            return 'webp'
+
+        # URL에서 확장자 추출 시도
+        try:
+            parsed_url = urllib.parse.urlparse(image_url)
+            path = parsed_url.path.lower()
+            if path.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                return path.split('.')[-1]
+        except:
+            pass
+
+        # 기본값
+        return 'jpg'
+
+    def is_valid_image_response(self, response) -> bool:
+        """
+        응답이 실제 이미지인지 확인
+
+        Args:
+            response: HTTP 응답 객체
+
+        Returns:
+            이미지인지 여부
+        """
+        # Content-Type 확인
+        content_type = response.headers.get('content-type', '').lower()
+        if not any(img_type in content_type for img_type in ['image/jpeg', 'image/png', 'image/gif', 'image/webp']):
+            return False
+
+        # Content-Length 확인 (너무 작으면 의심)
+        content_length = response.headers.get('content-length')
+        if content_length and int(content_length) < 1000:  # 1KB 미만이면 의심
+            return False
+
+        return True
+
+    def download_image(self, image_url: str, base_filename: str) -> tuple[bool, str]:
+        """
+        이미지 다운로드 (실제 확장자 포함)
+
+        Args:
+            image_url: 이미지 URL
+            base_filename: 기본 파일명 (확장자 제외)
+
+        Returns:
+            (다운로드 성공 여부, 실제 파일명)
+        """
+        try:
+            # 이미지 저장 디렉토리 생성
+            os.makedirs(self.image_save_dir, exist_ok=True)
+
+            # 이미지 다운로드 (헤더만 먼저 받아서 Content-Type 확인)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+
+            # HEAD 요청으로 Content-Type 확인
+            try:
+                head_response = requests.head(image_url, headers=headers, timeout=10)
+                extension = self.get_image_extension(image_url, head_response)
+            except:
+                # HEAD 요청 실패시 GET으로 확인
+                response = requests.get(image_url, headers=headers, timeout=30, stream=True)
+                extension = self.get_image_extension(image_url, response)
+
+                # 실제 파일명 생성
+                actual_filename = f"{base_filename}.{extension}"
+                filepath = os.path.join(self.image_save_dir, actual_filename)
+
+                # 이미지 파일 저장
+                with open(filepath, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
+                print(f"✅ 이미지 저장 완료: {filepath}")
+                return True, actual_filename
+
+            # GET 요청으로 이미지 다운로드
+            response = requests.get(image_url, headers=headers, timeout=30)
+            response.raise_for_status()
+
+            # 실제 이미지인지 확인
+            if not self.is_valid_image_response(response):
+                print(f"❌ 유효하지 않은 이미지 응답: {image_url}")
+                return False, base_filename + ".jpg"
+
+            # 실제 파일명 생성
+            actual_filename = f"{base_filename}.{extension}"
+            filepath = os.path.join(self.image_save_dir, actual_filename)
+
+            # 이미지 파일 저장
+            with open(filepath, 'wb') as f:
+                f.write(response.content)
+
+            print(f"✅ 이미지 저장 완료: {filepath}")
+            return True, actual_filename
+
+        except Exception as e:
+            print(f"❌ 이미지 다운로드 실패: {e}")
+            return False, base_filename + ".jpg"
+
     def get_comprehensive_info(self, product_name: str) -> Dict:
         """
         제품에 대한 종합 정보 수집
@@ -246,13 +417,52 @@ class WebSearcher:
             "basic_info": self.search_product_info(product_name),
             "price_info": self.search_product_price(product_name),
             "recent_news": self.search_recent_news(product_name),
-            "user_reviews": self.search_user_reviews(product_name)
+            "user_reviews": self.search_user_reviews(product_name),
+            "images": self.search_product_images(product_name)
         }
 
         print("="*60)
         print(f"✅ 종합 정보 수집 완료!")
 
         return comprehensive_info
+
+    def download_product_images(self, product_name: str, images: List[Dict], max_downloads: int = 3) -> List[str]:
+        """
+        제품 이미지들을 다운로드
+
+        Args:
+            product_name: 제품명
+            images: 이미지 정보 리스트
+            max_downloads: 최대 다운로드 수
+
+        Returns:
+            다운로드된 이미지 파일명 리스트
+        """
+        print(f"📥 '{product_name}' 이미지 다운로드 시작...")
+
+        downloaded_files = []
+        safe_product_name = product_name.replace(" ", "-").replace("/", "-").lower()
+
+        for i, image in enumerate(images[:max_downloads]):
+            if not image.get("url"):
+                continue
+
+            # 파일명 생성 (확장자 제외)
+            base_filename = f"{safe_product_name}-{i+1}"
+
+            # 이미지 다운로드 시도 (실제 확장자 포함)
+            success, actual_filename = self.download_image(image["url"], base_filename)
+            if success:
+                local_path = f"/images/{actual_filename}"
+                downloaded_files.append({
+                    "filename": actual_filename,
+                    "local_path": local_path,
+                    "original_url": image["url"],
+                    "title": image.get("title", "")
+                })
+
+        print(f"✅ 총 {len(downloaded_files)}개 이미지 다운로드 완료")
+        return downloaded_files
 
 
 def format_search_results(search_data: Dict) -> str:
