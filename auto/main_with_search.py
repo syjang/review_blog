@@ -252,6 +252,9 @@ def create_markdown(state: BlogState) -> BlogState:
         for img in images:
             references += f"- [이미지 {images.index(img)+1}]({img['original_url']})\n"
 
+    # 제품명을 영어로 변환 (태그용)
+    safe_product_name = translate_product_name_for_tags(product_name)
+
     # 마크다운 포맷으로 변환
     if images and images[0].get("filename"):
         # 첫 번째 이미지의 실제 파일명 사용
@@ -266,7 +269,7 @@ title: '{product_name} 리뷰 - 실사용 후기와 장단점'
 date: '{datetime.now().strftime("%Y-%m-%d")}'
 excerpt: '{product_name}에 대한 상세한 리뷰와 구매 가이드'
 category: '제품리뷰'
-tags: ['{product_name}', '리뷰', '실사용후기']
+tags: ['{safe_product_name}', '리뷰', '실사용후기']
 image: '{primary_image}'
 ---
 
@@ -283,6 +286,79 @@ image: '{primary_image}'
     state["current_post"]["status"] = "markdown_created"
 
     return state
+
+
+def translate_product_name_for_tags(product_name: str) -> str:
+    """
+    제품명을 태그용 영어로 변환
+
+    Args:
+        product_name: 한글 제품명
+
+    Returns:
+        영어 태그명
+    """
+    # 한글 제품명을 영어로 매핑하는 딕셔너리
+    korean_to_english = {
+        # 삼성 제품
+        "갤럭시": "galaxy",
+        "갤럭시 s": "galaxy-s",
+        "갤럭시s": "galaxy-s",
+        "갤럭시 s24": "galaxy-s24",
+        "갤럭시s24": "galaxy-s24",
+        "갤럭시 s25": "galaxy-s25",
+        "갤럭시s25": "galaxy-s25",
+        "갤럭 폴드": "galaxy-fold",
+        "갤럭폴드": "galaxy-fold",
+        "갤럭폴드7": "galaxy-fold7",
+        "버즈 프로": "buds-pro",
+        "버즈프로": "buds-pro",
+        "버즈프로3": "buds-pro3",
+
+        # 애플 제품
+        "아이폰": "iphone",
+        "아이폰 16": "iphone-16",
+        "아이폰16": "iphone-16",
+        "아이폰 16 프로": "iphone-16-pro",
+        "아이폰16프로": "iphone-16-pro",
+        "아이폰 16 프로 맥스": "iphone-16-pro-max",
+        "아이폰16프로맥스": "iphone-16-pro-max",
+        "에어팟": "airpods",
+        "에어팟 프로": "airpods-pro",
+        "에어팟프로": "airpods-pro",
+        "애플 매직 키보드": "apple-magic-keyboard",
+        "애플매직키보드": "apple-magic-keyboard",
+        "매직 키보드": "magic-keyboard",
+        "매직키보드": "magic-keyboard",
+        "맥북": "macbook",
+        "아이패드": "ipad",
+        "애플워치": "apple-watch",
+
+        # 기타 브랜드
+        "소니": "sony",
+        "소니 무선 헤드폰": "sony-headphone",
+        "소니무선헤드폰": "sony-headphone",
+        "다이슨": "dyson",
+    }
+
+    # 제품명을 소문자로 변환
+    safe_name = product_name.lower()
+
+    # 한글을 영어로 변환
+    for korean, english in korean_to_english.items():
+        safe_name = safe_name.replace(korean, english)
+
+    # 공백과 특수문자를 하이픈으로 변환
+    import re
+    safe_name = re.sub(r'[^\w\-]', '-', safe_name)
+    safe_name = re.sub(r'-+', '-', safe_name)  # 연속된 하이픈 제거
+    safe_name = safe_name.strip('-')  # 앞뒤 하이픈 제거
+
+    # 빈 문자열이면 원본 반환
+    if not safe_name:
+        safe_name = product_name
+
+    return safe_name
 
 
 def split_content_into_sections(content: str) -> List[str]:

@@ -441,7 +441,8 @@ class WebSearcher:
         print(f"📥 '{product_name}' 이미지 다운로드 시작...")
 
         downloaded_files = []
-        safe_product_name = product_name.replace(" ", "-").replace("/", "-").lower()
+        # 한글 제품명을 영어로 변환
+        safe_product_name = self.translate_korean_product_name(product_name)
 
         for i, image in enumerate(images[:max_downloads]):
             if not image.get("url"):
@@ -463,6 +464,80 @@ class WebSearcher:
 
         print(f"✅ 총 {len(downloaded_files)}개 이미지 다운로드 완료")
         return downloaded_files
+
+    def translate_korean_product_name(self, product_name: str) -> str:
+        """
+        한글 제품명을 영어로 변환
+
+        Args:
+            product_name: 한글 제품명
+
+        Returns:
+            영어 제품명
+        """
+        # 한글 제품명을 영어로 매핑하는 딕셔너리
+        korean_to_english = {
+            # 삼성 제품
+            "갤럭시": "galaxy",
+            "갤럭시s": "galaxy-s",
+            "갤럭시s24": "galaxy-s24",
+            "갤럭시s25": "galaxy-s25",
+            "갤럭폴드": "galaxy-fold",
+            "갤럭폴드7": "galaxy-fold7",
+            "버즈프로": "buds-pro",
+            "버즈프로3": "buds-pro3",
+
+            # 애플 제품
+            "아이폰": "iphone",
+            "아이폰16": "iphone-16",
+            "아이폰16프로": "iphone-16-pro",
+            "아이폰16프로맥스": "iphone-16-pro-max",
+            "에어팟": "airpods",
+            "에어팟프로": "airpods-pro",
+            "애플매직키보드": "apple-magic-keyboard",
+            "매직키보드": "magic-keyboard",
+            "맥북": "macbook",
+            "아이패드": "ipad",
+            "애플워치": "apple-watch",
+
+            # 기타 브랜드
+            "소니": "sony",
+            "소니무선헤드폰": "sony-headphone",
+            "다이슨": "dyson",
+            "lg": "lg",
+            "삼성": "samsung",
+
+            # 일반 단어
+            "리뷰": "review",
+            "울트라": "ultra",
+            "프로": "pro",
+            "맥스": "max",
+            "미니": "mini",
+            "플러스": "+",
+            "무선": "wireless",
+            "헤드폰": "headphone",
+            "키보드": "keyboard",
+            "마우스": "mouse",
+        }
+
+        # 제품명을 소문자로 변환하고 공백 제거
+        safe_name = product_name.lower().replace(" ", "").replace("-", "")
+
+        # 한글을 영어로 변환
+        for korean, english in korean_to_english.items():
+            safe_name = safe_name.replace(korean, english)
+
+        # 특수문자 제거 및 하이픈으로 변환
+        import re
+        safe_name = re.sub(r'[^a-zA-Z0-9\-]', '-', safe_name)
+        safe_name = re.sub(r'-+', '-', safe_name)  # 연속된 하이픈 제거
+        safe_name = safe_name.strip('-')  # 앞뒤 하이픈 제거
+
+        # 빈 문자열이면 기본값 사용
+        if not safe_name:
+            safe_name = "product"
+
+        return safe_name
 
 
 def format_search_results(search_data: Dict) -> str:
