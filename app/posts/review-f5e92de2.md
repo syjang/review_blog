@@ -4,7 +4,7 @@ date: "2025-09-23"
 excerpt: "소니해드폰에 대한 상세한 리뷰와 구매 가이드"
 category: "제품리뷰"
 tags: ["소니해드폰", "리뷰", "실사용후기"]
-image: "/images/sony-headphone-2.jpg"
+image: "/images/sony-headphone-2.webp"
 ---
 
 안녕하세요, '리뷰 활짝'입니다!
