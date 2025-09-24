@@ -1,10 +1,10 @@
 ---
-title: '소니무선헤드폰 리뷰 - 실사용 후기와 장단점'
+title: 'sony-headphone 리뷰 - 실사용 후기와 장단점'
 date: '2025-09-23'
-excerpt: '소니무선헤드폰에 대한 상세한 리뷰와 구매 가이드'
+excerpt: 'sony-headphone에 대한 상세한 리뷰와 구매 가이드'
 category: '제품리뷰'
-tags: ['소니무선헤드폰', '리뷰', '실사용후기']
-image: '/images/소니무선헤드폰-2.jpg'
+tags: ['sony-headphone', '리뷰', '실사용후기']
+image: '/images/sony-headphone-2.jpg'
 ---
 
 안녕하세요, '리뷰 활짝'입니다!
@@ -13,7 +13,7 @@ image: '/images/소니무선헤드폰-2.jpg'
 
 ---
 
-![WH-1000XM4 | 무선 노이즈 캔슬링 헤드폰 | Sony Korea](/images/소니무선헤드폰-2.jpg)
+![WH-1000XM4 | 무선 노이즈 캔슬링 헤드폰 | Sony Korea](/images/sony-headphone-2.jpg)
 *WH-1000XM4 | 무선 노이즈 캔슬링 헤드폰 | Sony Korea*
 
 ### 1. 제품 소개

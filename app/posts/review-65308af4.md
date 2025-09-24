@@ -1,10 +1,10 @@
 ---
-title: '버즈프로3 리뷰 - 실사용 후기와 장단점'
+title: 'buds-pro3 리뷰 - 실사용 후기와 장단점'
 date: '2025-09-22'
-excerpt: '버즈프로3에 대한 상세한 리뷰와 구매 가이드'
+excerpt: 'buds-pro3에 대한 상세한 리뷰와 구매 가이드'
 category: '제품리뷰'
-tags: ['버즈프로3', '리뷰', '실사용후기']
-image: '/images/버즈프로3-1.jpg'
+tags: ['buds-pro3', '리뷰', '실사용후기']
+image: '/images/buds-pro3-1.jpg'
 ---
 
 ## 갤럭시 버즈 프로 3: 삼성 무선 이어폰의 새로운 기준을 제시하다 (솔직 리뷰)
@@ -13,7 +13,7 @@ image: '/images/버즈프로3-1.jpg'
 
 ---
 
-![갤럭시 버즈3 프로 | Samsung 대한민국](/images/버즈프로3-1.jpg)
+![갤럭시 버즈3 프로 | Samsung 대한민국](/images/buds-pro3-1.jpg)
 *갤럭시 버즈3 프로 | Samsung 대한민국*
 
 ### 1. 제품 소개: 진정한 프리미엄 오디오의 계승자
@@ -22,7 +22,7 @@ image: '/images/버즈프로3-1.jpg'
 
 ---
 
-![갤럭시 버즈3 (Galaxy Buds3) 색상별 제품 사진 및 사양](/images/버즈프로3-2.png)
+![갤럭시 버즈3 (Galaxy Buds3) 색상별 제품 사진 및 사양](/images/buds-pro3-2.png)
 *갤럭시 버즈3 (Galaxy Buds3) 색상별 제품 사진 및 사양*
 
 ### 2. 주요 특징: 혁신적인 사운드와 사용자 경험
@@ -37,7 +37,7 @@ image: '/images/버즈프로3-1.jpg'
 
 ---
 
-![삼성 갤럭시 버즈3 프로 사전예약 | 가격, 성능, 디자인 모두 알아보기](/images/버즈프로3-3.webp)
+![삼성 갤럭시 버즈3 프로 사전예약 | 가격, 성능, 디자인 모두 알아보기](/images/buds-pro3-3.webp)
 *삼성 갤럭시 버즈3 프로 사전예약 | 가격, 성능, 디자인 모두 알아보기*
 
 ### 3. 장점: 왜 버즈 프로 3를 선택해야 하는가?
@@ -91,7 +91,7 @@ image: '/images/버즈프로3-1.jpg'
 
 ## 참고 자료
 
-- [갤럭시 버즈프로 3 | TikTok](https://www.tiktok.com/discover/갤럭시-버즈프로3)
+- [갤럭시 버즈프로 3 | TikTok](https://www.tiktok.com/discover/갤럭시-buds-pro3)
 - [서피스프로9 출시 Microsoft Surface Pro 9 윈도우 태블릿 PC 표준 사양 ...](https://m.blog.naver.com/erke2000/222898841183)
 - [갤럭시 버즈3 프로 - 나무위키](https://namu.wiki/w/갤럭시+버즈3+프로)
 

@@ -4,7 +4,7 @@ date: '2025-09-22'
 excerpt: '갤럭시 25 리뷰에 대한 상세한 리뷰와 구매 가이드'
 category: '제품리뷰'
 tags: ['갤럭시 25 리뷰', '리뷰', '실사용후기']
-image: '/images/갤럭시-25-리뷰-1.jpg'
+image: '/images/galaxy-s25-review-1.jpg'
 ---
 
 ## 갤럭시 S25 리뷰: '진정한 AI폰'의 탄생, 과연 그 가치는?
@@ -13,7 +13,7 @@ image: '/images/갤럭시-25-리뷰-1.jpg'
 
 ---
 
-![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/갤럭시-25-리뷰-1.jpg)
+![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/galaxy-s25-review-1.jpg)
 *삼성전자, 갤럭시 S25 시리즈 공개 - 미코*
 
 ### 1. 제품 소개: '진정한 AI폰'의 서막을 열다
@@ -24,7 +24,7 @@ image: '/images/갤럭시-25-리뷰-1.jpg'
 
 ---
 
-![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/갤럭시-25-리뷰-2.jpg)
+![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/galaxy-s25-review-2.jpg)
 *삼성전자, 갤럭시 S25 시리즈 공개 - 미코*
 
 ### 2. 주요 특징: AI, RAM, 그리고 합리적인 가치
@@ -41,7 +41,7 @@ image: '/images/갤럭시-25-리뷰-1.jpg'
 
 ---
 
-![삼성전자, '갤럭시 S25 시리즈' 공개 - Samsung Newsroom Korea](/images/갤럭시-25-리뷰-3.jpg)
+![삼성전자, '갤럭시 S25 시리즈' 공개 - Samsung Newsroom Korea](/images/galaxy-s25-review-3.jpg)
 *삼성전자, '갤럭시 S25 시리즈' 공개 - Samsung Newsroom Korea*
 
 ### 3. 장점: 왜 갤럭시 S25를 선택해야 하는가?

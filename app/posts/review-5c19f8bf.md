@@ -1,10 +1,10 @@
 ---
-title: '갤럭폴드7 리뷰 - 실사용 후기와 장단점'
+title: 'galaxy-fold7 리뷰 - 실사용 후기와 장단점'
 date: '2025-09-23'
-excerpt: '갤럭폴드7에 대한 상세한 리뷰와 구매 가이드'
+excerpt: 'galaxy-fold7에 대한 상세한 리뷰와 구매 가이드'
 category: '제품리뷰'
-tags: ['갤럭폴드7', '리뷰', '실사용후기']
-image: '/images/갤럭폴드7-1.jpg'
+tags: ['galaxy-fold7', '리뷰', '실사용후기']
+image: '/images/galaxy-fold7-1.jpg'
 ---
 
 ## 리뷰 활짝: 미래를 접다, 삼성 갤럭시 Z 폴드7 솔직 리뷰!
@@ -13,7 +13,7 @@ image: '/images/갤럭폴드7-1.jpg'
 
 ---
 
-!['7월 공개' 삼성 갤럭시Z플립7·폴드7, 어떻게 달라질까 - 경제 | 기사 - 더팩트](/images/갤럭폴드7-1.jpg)
+!['7월 공개' 삼성 갤럭시Z플립7·폴드7, 어떻게 달라질까 - 경제 | 기사 - 더팩트](/images/galaxy-fold7-1.jpg)
 *'7월 공개' 삼성 갤럭시Z플립7·폴드7, 어떻게 달라질까 - 경제 | 기사 - 더팩트*
 
 ### 1. 제품 소개: 초슬림 대화면의 새로운 기준
@@ -24,7 +24,7 @@ image: '/images/갤럭폴드7-1.jpg'
 
 ---
 
-![Samsung Galaxy Z Fold 7 first images leak — here's what they reveal ...](/images/갤럭폴드7-2.jpg)
+![Samsung Galaxy Z Fold 7 first images leak — here's what they reveal ...](/images/galaxy-fold7-2.jpg)
 *Samsung Galaxy Z Fold 7 first images leak — here's what they reveal ...*
 
 ### 2. 주요 특징: 얇아진 몸체, 강력해진 경험
@@ -39,7 +39,7 @@ image: '/images/갤럭폴드7-1.jpg'
 
 ---
 
-![삼성 갤럭시Z 폴드7에 '7코어' 스냅드래곤8 엘리트 탑재 전망 : 네이트 뉴스](/images/갤럭폴드7-3.png)
+![삼성 갤럭시Z 폴드7에 '7코어' 스냅드래곤8 엘리트 탑재 전망 : 네이트 뉴스](/images/galaxy-fold7-3.png)
 *삼성 갤럭시Z 폴드7에 '7코어' 스냅드래곤8 엘리트 탑재 전망 : 네이트 뉴스*
 
 ### 3. 장점: 미래를 손에 쥐다
