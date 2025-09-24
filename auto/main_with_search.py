@@ -16,7 +16,7 @@ from config import get_llm
 from search_tools import WebSearcher, format_search_results
 
 # 환경 변수 로드
-load_dotenv()
+load_dotenv(verbose=True, override=True)
 
 # LLM 설정
 # llm = get_llm("gpt-oss", temperature=0.7)
@@ -47,7 +47,16 @@ def analyze_task(state: BlogState) -> BlogState:
 
     # 제품명 추출 (간단한 방법)
     # 실제로는 더 정교한 NER이나 패턴 매칭 사용
-    product_keywords = ["에어팟", "갤럭시", "아이폰", "맥북", "애플워치", "다이슨", "LG", "삼성"]
+    product_keywords = [
+        "에어팟",
+        "갤럭시",
+        "아이폰",
+        "맥북",
+        "애플워치",
+        "다이슨",
+        "LG",
+        "삼성",
+    ]
 
     product_name = ""
     for keyword in product_keywords:
@@ -57,8 +66,8 @@ def analyze_task(state: BlogState) -> BlogState:
             for i, word in enumerate(words):
                 if keyword in word:
                     # 주변 단어들도 포함
-                    start = max(0, i-1)
-                    end = min(len(words), i+3)
+                    start = max(0, i - 1)
+                    end = min(len(words), i + 3)
                     product_name = " ".join(words[start:end])
                     break
             if product_name:
@@ -88,11 +97,11 @@ def research_product(state: BlogState) -> BlogState:
 
     # 검색 결과 요약
     total_results = (
-        len(search_results.get("basic_info", [])) +
-        len(search_results.get("price_info", [])) +
-        len(search_results.get("recent_news", [])) +
-        len(search_results.get("user_reviews", [])) +
-        len(search_results.get("images", []))
+        len(search_results.get("basic_info", []))
+        + len(search_results.get("price_info", []))
+        + len(search_results.get("recent_news", []))
+        + len(search_results.get("user_reviews", []))
+        + len(search_results.get("images", []))
     )
 
     print(f"✅ 총 {total_results}개의 정보 수집 완료")
@@ -112,7 +121,9 @@ def download_images(state: BlogState) -> BlogState:
 
     if images:
         # 이미지 다운로드 실행
-        downloaded_images = searcher.download_product_images(product_name, images, max_downloads=3)
+        downloaded_images = searcher.download_product_images(
+            product_name, images, max_downloads=3
+        )
         state["images"] = downloaded_images
         print(f"✅ {len(downloaded_images)}개 이미지 다운로드 완료")
     else:
@@ -167,12 +178,13 @@ def generate_content(state: BlogState) -> BlogState:
     위 정보를 바탕으로 {task}
     """
 
-    response = llm.invoke([
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=user_prompt)
-    ])
+    response = llm.invoke(
+        [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+    )
 
-    state["current_post"]["content"] = response.content if hasattr(response, 'content') else str(response)
+    state["current_post"]["content"] = (
+        response.content if hasattr(response, "content") else str(response)
+    )
     state["current_post"]["status"] = "generated"
     state["current_post"]["created_at"] = datetime.now().isoformat()
     state["current_post"]["sources"] = search_results  # 출처 저장
@@ -277,15 +289,15 @@ def split_content_into_sections(content: str) -> List[str]:
     """리뷰 내용을 섹션별로 나누기"""
     sections = []
     current_section = ""
-    lines = content.split('\n')
+    lines = content.split("\n")
 
     for line in lines:
-        if line.startswith('### ') and current_section.strip():
+        if line.startswith("### ") and current_section.strip():
             # 새로운 섹션이 시작되면 이전 섹션 저장
             sections.append(current_section.strip())
-            current_section = line + '\n'
+            current_section = line + "\n"
         else:
-            current_section += line + '\n'
+            current_section += line + "\n"
 
     # 마지막 섹션 추가
     if current_section.strip():
@@ -297,7 +309,7 @@ def split_content_into_sections(content: str) -> List[str]:
 def insert_images_between_sections(sections: List[str], images: List[Dict]) -> str:
     """섹션 사이에 이미지 배치"""
     if not images:
-        return '\n'.join(sections)
+        return "\n".join(sections)
 
     result = []
     images_used = 0
@@ -312,9 +324,9 @@ def insert_images_between_sections(sections: List[str], images: List[Dict]) -> s
         # 이미지 추가 (사용 가능한 이미지 수 내에서)
         if images_used < max_images and i <= max_images:
             img = images[images_used]
-            image_caption = img.get('title', f'제품 이미지 {images_used + 1}')
+            image_caption = img.get("title", f"제품 이미지 {images_used + 1}")
             image_md = f"\n![{image_caption}]({img['local_path']})\n"
-            if img.get('title'):
+            if img.get("title"):
                 image_md += f"*{img['title']}*\n"
             result.append(image_md)
             images_used += 1
@@ -322,7 +334,7 @@ def insert_images_between_sections(sections: List[str], images: List[Dict]) -> s
         # 다음 섹션 추가
         result.append(sections[i])
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def save_post(state: BlogState) -> BlogState:
@@ -375,7 +387,10 @@ def review_content(state: BlogState) -> BlogState:
     }
 
     # 검색 결과가 없어도 최대 재시도 후에는 통과
-    if len(search_results.get("basic_info", [])) == 0 and revision_count >= max_revisions:
+    if (
+        len(search_results.get("basic_info", [])) == 0
+        and revision_count >= max_revisions
+    ):
         checks["sources_used"] = True  # 강제로 통과
         print(f"⚠️ 검색 결과 없음. 재시도 제한({max_revisions})에 도달하여 진행합니다.")
     else:
@@ -389,7 +404,9 @@ def review_content(state: BlogState) -> BlogState:
         state["revision_count"] = revision_count + 1
     else:
         if revision_count >= max_revisions:
-            state["feedback"] = f"최대 재시도 횟수({max_revisions}) 도달 - 현재 상태로 진행"
+            state["feedback"] = (
+                f"최대 재시도 횟수({max_revisions}) 도달 - 현재 상태로 진행"
+            )
         else:
             state["feedback"] = "검토 통과 - 품질 기준 충족"
         state["current_post"]["needs_revision"] = False
@@ -433,12 +450,7 @@ def create_workflow():
 
     # 조건부 엣지
     workflow.add_conditional_edges(
-        "review",
-        should_revise,
-        {
-            "revise": "generate",
-            "continue": "markdown"
-        }
+        "review", should_revise, {"revise": "generate", "continue": "markdown"}
     )
 
     workflow.add_edge("markdown", "save")
@@ -455,7 +467,7 @@ def create_workflow():
 def main():
     """메인 실행 함수"""
     print("🚀 리뷰 블로그 자동화 시스템 (웹 검색 버전)")
-    print("="*60)
+    print("=" * 60)
 
     # 워크플로우 생성
     app = create_workflow()
@@ -478,21 +490,21 @@ def main():
         "current_post": {},
         "feedback": "",
         "completed": False,
-        "images": []
+        "images": [],
     }
 
     # 워크플로우 실행
     config = {"configurable": {"thread_id": f"review_{datetime.now().timestamp()}"}}
 
     print(f"\n📌 작업: {initial_state['task']}")
-    print("="*60)
+    print("=" * 60)
 
     # 실행
     for output in app.stream(initial_state, config):
         for key, value in output.items():
             print(f"✅ {key} 노드 완료")
 
-    print("="*60)
+    print("=" * 60)
     print("✨ 리뷰 작성 완료!")
 
 

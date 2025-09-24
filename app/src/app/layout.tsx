@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getSiteUrl } from '@/lib/site';
 import { Geist, Geist_Mono } from "next/font/google";
+import Footer from '@/components/Footer';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,10 +54,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-0C38VPSFCD"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-0C38VPSFCD');
+            `,
+          }}
+        />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        {children}
+        <main className="flex-grow">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );
