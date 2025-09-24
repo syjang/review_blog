@@ -7,3 +7,4 @@ pydantic==2.9.2
 typing-extensions==4.12.2
 ddgs==9.6.0
 langchain-google-genai
+Pillow>=9.0.0

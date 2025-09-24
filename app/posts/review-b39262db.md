@@ -13,7 +13,7 @@ image: '/images/galaxy-s25-review-1.jpg'
 
 ---
 
-![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/galaxy-s25-review-1.jpg)
+![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/galaxy-s25-review-1.webp)
 *삼성전자, 갤럭시 S25 시리즈 공개 - 미코*
 
 ### 1. 제품 소개: '진정한 AI폰'의 서막을 열다
@@ -24,7 +24,7 @@ image: '/images/galaxy-s25-review-1.jpg'
 
 ---
 
-![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/galaxy-s25-review-2.jpg)
+![삼성전자, 갤럭시 S25 시리즈 공개 - 미코](/images/galaxy-s25-review-2.webp)
 *삼성전자, 갤럭시 S25 시리즈 공개 - 미코*
 
 ### 2. 주요 특징: AI, RAM, 그리고 합리적인 가치
@@ -41,7 +41,7 @@ image: '/images/galaxy-s25-review-1.jpg'
 
 ---
 
-![삼성전자, '갤럭시 S25 시리즈' 공개 - Samsung Newsroom Korea](/images/galaxy-s25-review-3.jpg)
+![삼성전자, '갤럭시 S25 시리즈' 공개 - Samsung Newsroom Korea](/images/galaxy-s25-review-3.webp)
 *삼성전자, '갤럭시 S25 시리즈' 공개 - Samsung Newsroom Korea*
 
 ### 3. 장점: 왜 갤럭시 S25를 선택해야 하는가?

@@ -4,7 +4,7 @@ date: "2025-09-22"
 excerpt: "버즈프로3에 대한 상세한 리뷰와 구매 가이드"
 category: "제품리뷰"
 tags: ["버즈프로3", "리뷰", "실사용후기"]
-image: "/images/buds-pro3-1.jpg"
+image: "/images/buds-pro3-1.webp"
 ---
 
 ## 갤럭시 버즈 프로 3: 삼성 무선 이어폰의 새로운 기준을 제시하다 (솔직 리뷰)
@@ -13,7 +13,7 @@ image: "/images/buds-pro3-1.jpg"
 
 ---
 
-![갤럭시 버즈3 프로 | Samsung 대한민국](/images/buds-pro3-1.jpg)
+![갤럭시 버즈3 프로 | Samsung 대한민국](/images/buds-pro3-1.webp)
 _갤럭시 버즈3 프로 | Samsung 대한민국_
 
 ### 1. 제품 소개: 진정한 프리미엄 오디오의 계승자
@@ -22,7 +22,7 @@ _갤럭시 버즈3 프로 | Samsung 대한민국_
 
 ---
 
-![갤럭시 버즈3 (Galaxy Buds3) 색상별 제품 사진 및 사양](/images/buds-pro3-2.png)
+![갤럭시 버즈3 (Galaxy Buds3) 색상별 제품 사진 및 사양](/images/buds-pro3-2.webp)
 _갤럭시 버즈3 (Galaxy Buds3) 색상별 제품 사진 및 사양_
 
 ### 2. 주요 특징: 혁신적인 사운드와 사용자 경험

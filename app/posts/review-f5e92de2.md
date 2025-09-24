@@ -13,7 +13,7 @@ image: "/images/sony-headphone-2.jpg"
 
 ---
 
-![WH-1000XM4 | 무선 노이즈 캔슬링 헤드폰 | Sony Korea](/images/sony-headphone-2.jpg)
+![WH-1000XM4 | 무선 노이즈 캔슬링 헤드폰 | Sony Korea](/images/sony-headphone-2.webp)
 _WH-1000XM4 | 무선 노이즈 캔슬링 헤드폰 | Sony Korea_
 
 ### 1. 제품 소개

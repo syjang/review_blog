@@ -10,6 +10,8 @@ from random import uniform
 import os
 import requests
 import urllib.parse
+from PIL import Image
+from io import BytesIO
 
 
 
@@ -280,36 +282,17 @@ class WebSearcher:
     def get_image_extension(self, image_url: str, response) -> str:
         """
         이미지 URL과 응답에서 실제 확장자 추출
+        모든 이미지를 WebP로 변환하여 저장
 
         Args:
             image_url: 이미지 URL
             response: HTTP 응답 객체
 
         Returns:
-            이미지 확장자 (소문자)
+            이미지 확장자 (항상 'webp')
         """
-        # Content-Type에서 확장자 확인
-        content_type = response.headers.get('content-type', '')
-        if 'jpeg' in content_type or 'jpg' in content_type:
-            return 'jpg'
-        elif 'png' in content_type:
-            return 'png'
-        elif 'gif' in content_type:
-            return 'gif'
-        elif 'webp' in content_type:
-            return 'webp'
-
-        # URL에서 확장자 추출 시도
-        try:
-            parsed_url = urllib.parse.urlparse(image_url)
-            path = parsed_url.path.lower()
-            if path.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-                return path.split('.')[-1]
-        except:
-            pass
-
-        # 기본값
-        return 'jpg'
+        # 모든 이미지를 WebP 형식으로 저장
+        return 'webp'
 
     def is_valid_image_response(self, response) -> bool:
         """
@@ -335,7 +318,7 @@ class WebSearcher:
 
     def download_image(self, image_url: str, base_filename: str) -> tuple[bool, str]:
         """
-        이미지 다운로드 (실제 확장자 포함)
+        이미지 다운로드 및 WebP로 변환
 
         Args:
             image_url: 이미지 URL
@@ -348,31 +331,10 @@ class WebSearcher:
             # 이미지 저장 디렉토리 생성
             os.makedirs(self.image_save_dir, exist_ok=True)
 
-            # 이미지 다운로드 (헤더만 먼저 받아서 Content-Type 확인)
+            # 이미지 다운로드
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
-
-            # HEAD 요청으로 Content-Type 확인
-            try:
-                head_response = requests.head(image_url, headers=headers, timeout=10)
-                extension = self.get_image_extension(image_url, head_response)
-            except:
-                # HEAD 요청 실패시 GET으로 확인
-                response = requests.get(image_url, headers=headers, timeout=30, stream=True)
-                extension = self.get_image_extension(image_url, response)
-
-                # 실제 파일명 생성
-                actual_filename = f"{base_filename}.{extension}"
-                filepath = os.path.join(self.image_save_dir, actual_filename)
-
-                # 이미지 파일 저장
-                with open(filepath, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-
-                print(f"✅ 이미지 저장 완료: {filepath}")
-                return True, actual_filename
 
             # GET 요청으로 이미지 다운로드
             response = requests.get(image_url, headers=headers, timeout=30)
@@ -381,22 +343,46 @@ class WebSearcher:
             # 실제 이미지인지 확인
             if not self.is_valid_image_response(response):
                 print(f"❌ 유효하지 않은 이미지 응답: {image_url}")
-                return False, base_filename + ".jpg"
+                return False, base_filename + ".webp"
 
-            # 실제 파일명 생성
-            actual_filename = f"{base_filename}.{extension}"
-            filepath = os.path.join(self.image_save_dir, actual_filename)
+            # 이미지를 PIL로 열고 WebP로 변환
+            try:
+                # 바이트 스트림에서 이미지 열기
+                image = Image.open(BytesIO(response.content))
 
-            # 이미지 파일 저장
-            with open(filepath, 'wb') as f:
-                f.write(response.content)
+                # RGBA 모드가 아니면 RGB로 변환 (WebP 호환성을 위해)
+                if image.mode in ('RGBA', 'LA'):
+                    # 투명도가 있는 이미지는 그대로 유지
+                    pass
+                elif image.mode != 'RGB':
+                    image = image.convert('RGB')
 
-            print(f"✅ 이미지 저장 완료: {filepath}")
-            return True, actual_filename
+                # WebP 파일명 생성
+                actual_filename = f"{base_filename}.webp"
+                filepath = os.path.join(self.image_save_dir, actual_filename)
+
+                # WebP 형식으로 저장 (품질 85로 설정하여 크기와 품질 균형)
+                image.save(filepath, 'WEBP', quality=85, optimize=True)
+
+                print(f"✅ 이미지 저장 완료 (WebP): {filepath}")
+                return True, actual_filename
+
+            except Exception as img_error:
+                print(f"⚠️ 이미지 변환 실패, 원본으로 저장 시도: {img_error}")
+
+                # PIL 변환 실패시 원본 그대로 저장
+                actual_filename = f"{base_filename}.webp"
+                filepath = os.path.join(self.image_save_dir, actual_filename)
+
+                with open(filepath, 'wb') as f:
+                    f.write(response.content)
+
+                print(f"✅ 원본 이미지 저장 완료: {filepath}")
+                return True, actual_filename
 
         except Exception as e:
             print(f"❌ 이미지 다운로드 실패: {e}")
-            return False, base_filename + ".jpg"
+            return False, base_filename + ".webp"
 
     def get_comprehensive_info(self, product_name: str) -> Dict:
         """
