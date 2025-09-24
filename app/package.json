@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cf:build": "npx --yes @cloudflare/next-on-pages@latest --no-color",
+    "cf:dev": "npx --yes wrangler pages dev ./.vercel/output/static --compatibility-date=2024-12-01",
+    "cf:preview": "npx --yes wrangler pages deploy ./.vercel/output/static --project-name=${npm_package_name} --branch=preview"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
