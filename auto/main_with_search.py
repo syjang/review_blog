@@ -8,6 +8,7 @@ from typing import TypedDict, List, Dict
 from datetime import datetime
 from dotenv import load_dotenv
 import uuid
+import json
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -25,6 +26,9 @@ llm = get_llm("gemini-2.5-flash", temperature=0.5)
 # 웹 검색 도구
 searcher = WebSearcher()
 
+# 생성된 리뷰 추적 파일 경로
+GENERATED_REVIEWS_FILE = "generated_reviews.json"
+
 
 # 상태 정의
 class BlogState(TypedDict):
@@ -37,6 +41,49 @@ class BlogState(TypedDict):
     completed: bool
     images: List[dict]
 
+
+# 리뷰 추적 함수들
+def load_generated_reviews() -> List[Dict]:
+    """생성된 리뷰 목록 로드"""
+    try:
+        if os.path.exists(GENERATED_REVIEWS_FILE):
+            with open(GENERATED_REVIEWS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"⚠️ 리뷰 목록 로드 실패: {e}")
+    return []
+
+def save_generated_reviews(reviews: List[Dict]) -> None:
+    """생성된 리뷰 목록 저장"""
+    try:
+        with open(GENERATED_REVIEWS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(reviews, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ 리뷰 목록 저장 실패: {e}")
+
+def is_product_already_reviewed(product_name: str) -> bool:
+    """제품이 이미 리뷰되었는지 확인"""
+    reviews = load_generated_reviews()
+    normalized_product = product_name.lower().strip()
+
+    for review in reviews:
+        existing_product = review.get('product_name', '').lower().strip()
+        if normalized_product in existing_product or existing_product in normalized_product:
+            return True
+    return False
+
+def add_review_record(product_name: str, filename: str) -> None:
+    """새 리뷰 기록 추가"""
+    reviews = load_generated_reviews()
+    new_review = {
+        'product_name': product_name,
+        'filename': filename,
+        'created_at': datetime.now().isoformat(),
+        'timestamp': datetime.now().timestamp()
+    }
+    reviews.append(new_review)
+    save_generated_reviews(reviews)
+    print(f"📝 리뷰 기록 추가: {product_name} -> {filename}")
 
 # 노드 함수들
 def analyze_task(state: BlogState) -> BlogState:
@@ -81,6 +128,13 @@ def analyze_task(state: BlogState) -> BlogState:
     state["current_post"] = {"type": "review", "status": "analyzing"}
 
     print(f"🎯 추출된 제품명: {product_name}")
+
+    # 중복 체크
+    if is_product_already_reviewed(product_name):
+        print(f"⚠️ '{product_name}' 제품은 이미 리뷰가 존재합니다!")
+        state["current_post"]["status"] = "duplicate"
+        state["completed"] = True
+        return state
 
     return state
 
@@ -440,6 +494,9 @@ def save_post(state: BlogState) -> BlogState:
     state["current_post"]["status"] = "saved"
     state["completed"] = True
 
+    # 생성된 리뷰 기록에 추가
+    add_review_record(product_name, filename)
+
     return state
 
 
@@ -501,6 +558,13 @@ def should_revise(state: BlogState) -> str:
         return "revise"
     return "continue"
 
+def should_continue_after_analyze(state: BlogState) -> str:
+    """분석 후 계속 진행 여부 판단"""
+    current_post = state.get("current_post", {})
+    if current_post.get("status") == "duplicate":
+        return "end"
+    return "research"
+
 
 # 워크플로우 생성
 def create_workflow():
@@ -519,7 +583,12 @@ def create_workflow():
 
     # 엣지 설정
     workflow.set_entry_point("analyze")
-    workflow.add_edge("analyze", "research")  # 분석 후 리서치
+
+    # 분석 후 중복 체크 조건부 엣지
+    workflow.add_conditional_edges(
+        "analyze", should_continue_after_analyze, {"end": END, "research": "research"}
+    )
+
     workflow.add_edge("research", "download_images")  # 리서치 후 이미지 다운로드
     workflow.add_edge("download_images", "generate")  # 이미지 다운로드 후 생성
     workflow.add_edge("generate", "review")
@@ -548,8 +617,18 @@ def main():
     # 워크플로우 생성
     app = create_workflow()
 
+    # 기존 리뷰 목록 표시
+    existing_reviews = load_generated_reviews()
+    if existing_reviews:
+        print(f"\n📚 기존 생성된 리뷰 목록 ({len(existing_reviews)}개):")
+        for i, review in enumerate(existing_reviews[-5:], 1):  # 최근 5개만 표시
+            print(f"  {i}. {review['product_name']} ({review['created_at'][:10]})")
+        if len(existing_reviews) > 5:
+            print(f"  ... 외 {len(existing_reviews) - 5}개 더")
+        print()
+
     # 사용자 입력 받기
-    print("\n제품 리뷰를 작성할 제품을 입력하세요.")
+    print("제품 리뷰를 작성할 제품을 입력하세요.")
     print("예시: 갤럭시 S24 울트라, 에어팟 프로 2, 다이슨 V15")
     product_input = input("\n제품명: ").strip()
 
