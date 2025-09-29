@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { getSiteUrl } from '@/lib/site';
 import { Geist, Geist_Mono } from "next/font/google";
 import Footer from '@/components/Footer';
@@ -55,19 +56,23 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-0C38VPSFCD"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-0C38VPSFCD');
-            `,
-          }}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-0C38VPSFCD"
+          strategy="afterInteractive"
         />
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2322758595151320"
-             crossOrigin="anonymous"></script>
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);} 
+            gtag('js', new Date());
+            gtag('config', 'G-0C38VPSFCD');
+          `}
+        </Script>
+        <Script
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2322758595151320"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}

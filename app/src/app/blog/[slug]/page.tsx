@@ -6,9 +6,9 @@ import Image from "next/image";
 import { getSiteUrl } from "@/lib/site";
 import "./prism.css";
 
-interface Props {
-  params: { slug: string };
-}
+type Props = {
+  params: Promise<{ slug: string }>;
+};
 
 export async function generateStaticParams() {
   const posts = getAllPosts();
@@ -18,7 +18,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = getPostBySlug(params.slug);
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
 
   if (!post) {
     return {
@@ -45,7 +46,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PostPage({ params }: Props) {
-  const post = getPostBySlug(params.slug);
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
 
   if (!post) {
     notFound();
@@ -63,10 +65,11 @@ export default async function PostPage({ params }: Props) {
 
           <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-6">
             <time dateTime={post.date} className="text-base">
-              {new Date(post.date).toLocaleDateString("ko-KR", {
+              {new Date(post.date).toLocaleDateString("en-CA", {
+                timeZone: "UTC",
                 year: "numeric",
-                month: "long",
-                day: "numeric",
+                month: "2-digit",
+                day: "2-digit",
               })}
             </time>
             <span className="text-gray-400">·</span>
