@@ -236,45 +236,88 @@ class WebSearcher:
 
     def search_product_images(self, product_name: str, max_results: int = 5) -> List[Dict]:
         """
-        제품 이미지 검색
+        제품 이미지 검색 (최신 이미지 우선)
 
         Args:
             product_name: 검색할 제품명
             max_results: 최대 결과 수
 
         Returns:
-            이미지 정보 리스트
+            이미지 정보 리스트 (최신순으로 정렬)
         """
-        print(f"🖼️ '{product_name}' 이미지 검색 중...")
+        print(f"🖼️ '{product_name}' 최신 이미지 검색 중...")
 
         try:
-            # 제품 이미지 검색
-            search_query = f"{product_name} 제품 사진"
+            # 최신 이미지를 우선적으로 검색하기 위한 쿼리들
+            search_queries = [
+                f"{product_name} 2025 제품 사진",  # 최신 연도 우선
+                f"{product_name} 2024 제품 사진",
+                f"{product_name} 최신 제품 사진",
+                f"{product_name} 신제품 이미지",
+                f"{product_name} 제품 사진"  # 기본 쿼리
+            ]
 
-            # 재시도 로직이 포함된 이미지 검색
-            results = self._search_with_retry(
-                lambda ddgs: list(ddgs.images(
-                    search_query,
-                    max_results=max_results,
-                    region='kr-kr'
-                ))
-            )
+            all_images = []
 
-            images = []
-            for result in results:
-                # 실제 이미지 URL 찾기 (image > thumbnail > url 순서로 우선순위)
-                image_url = result.get("image") or result.get("thumbnail") or result.get("url", "")
+            # 여러 쿼리로 검색해서 최신 이미지를 우선 수집
+            for i, search_query in enumerate(search_queries[:3]):  # 상위 3개 쿼리만 사용
+                print(f"🔍 이미지 검색 쿼리 {i+1}: {search_query}")
 
-                images.append({
-                    "title": result.get("title", ""),
-                    "url": image_url,  # 실제 이미지 URL
-                    "thumbnail": result.get("thumbnail", ""),
-                    "source": result.get("source", ""),
-                    "width": result.get("width", 0),
-                    "height": result.get("height", 0)
-                })
+                # 재시도 로직이 포함된 이미지 검색
+                results = self._search_with_retry(
+                    lambda ddgs: list(ddgs.images(
+                        search_query,
+                        max_results=max_results,
+                        region='kr-kr'
+                    ))
+                )
 
-            return images
+                for result in results:
+                    # 실제 이미지 URL 찾기 (image > thumbnail > url 순서로 우선순위)
+                    image_url = result.get("image") or result.get("thumbnail") or result.get("url", "")
+
+                    # 중복 체크 (URL 기준)
+                    if not any(img["url"] == image_url for img in all_images):
+                        image_info = {
+                            "title": result.get("title", ""),
+                            "url": image_url,  # 실제 이미지 URL
+                            "thumbnail": result.get("thumbnail", ""),
+                            "source": result.get("source", ""),
+                            "width": result.get("width", 0),
+                            "height": result.get("height", 0),
+                            "search_query": search_query,  # 어떤 쿼리로 찾았는지 추적
+                            "is_recent": "2025" in search_query or "2024" in search_query or "최신" in search_query  # 최신 이미지 표시
+                        }
+                        all_images.append(image_info)
+
+                # 충분한 이미지를 모았으면 중단
+                if len(all_images) >= max_results * 2:
+                    break
+
+            # 최신 이미지와 고해상도 이미지를 우선으로 정렬
+            def sort_by_priority(img):
+                score = 0
+                # 최신 쿼리로 찾은 이미지는 높은 점수
+                if img.get("is_recent"):
+                    score += 10
+                # 고해상도 이미지는 추가 점수
+                width = img.get("width", 0)
+                height = img.get("height", 0)
+                resolution = width * height
+                if resolution > 1000000:  # 100만 픽셀 이상
+                    score += 5
+                elif resolution > 500000:  # 50만 픽셀 이상
+                    score += 3
+                elif resolution > 100000:  # 10만 픽셀 이상
+                    score += 1
+
+                return score
+
+            # 우선순위별로 정렬 후 상위 결과만 반환
+            sorted_images = sorted(all_images, key=sort_by_priority, reverse=True)[:max_results]
+
+            print(f"✅ {len(sorted_images)}개 이미지 검색 완료 (최신 우선)")
+            return sorted_images
 
         except Exception as e:
             print(f"❌ 이미지 검색 오류: {e}")
@@ -402,7 +445,7 @@ class WebSearcher:
 
     def get_comprehensive_info(self, product_name: str) -> Dict:
         """
-        제품에 대한 종합 정보 수집
+        제품에 대한 종합 정보 수집 (최신 뉴스 우선)
 
         Args:
             product_name: 검색할 제품명
@@ -414,17 +457,39 @@ class WebSearcher:
         print("="*60)
         print("⚠️ Rate limit 방지를 위해 검색 간 지연 시간이 적용됩니다...")
 
+        # 최신 뉴스를 먼저 검색해서 최신 제품 동향 파악
+        print("1️⃣ 최신 뉴스 검색 중...")
+        recent_news = self.search_recent_news(product_name)
+
+        # 뉴스 결과를 바탕으로 최신 제품명 업데이트 (예: iPhone 16 → iPhone 16 Pro)
+        latest_product_name = product_name
+        if recent_news:
+            # 뉴스 타이틀에서 최신 제품명 추출 시도
+            for news in recent_news[:2]:  # 최근 2개 뉴스만 확인
+                news_title = news.get("title", "").lower()
+                if any(keyword in news_title for keyword in ["출시", "발표", "공개", "출시일", "스펙"]):
+                    # 제품명이 뉴스에 더 구체적으로 나와있을 수 있음
+                    latest_product_name = product_name  # 일단은 그대로 사용
+                    break
+
         comprehensive_info = {
             "product": product_name,
-            "basic_info": self.search_product_info(product_name),
-            "price_info": self.search_product_price(product_name),
-            "recent_news": self.search_recent_news(product_name),
-            "user_reviews": self.search_user_reviews(product_name),
-            "images": self.search_product_images(product_name)
+            "latest_product": latest_product_name,
+            "basic_info": self.search_product_info(latest_product_name),
+            "price_info": self.search_product_price(latest_product_name),
+            "recent_news": recent_news,
+            "user_reviews": self.search_user_reviews(latest_product_name),
+            "images": self.search_product_images(latest_product_name)  # 개선된 이미지 검색 사용
         }
 
         print("="*60)
         print(f"✅ 종합 정보 수집 완료!")
+        print(f"📊 수집된 데이터:")
+        print(f"  - 뉴스: {len(comprehensive_info['recent_news'])}개")
+        print(f"  - 기본 정보: {len(comprehensive_info['basic_info'])}개")
+        print(f"  - 가격 정보: {len(comprehensive_info['price_info'])}개")
+        print(f"  - 사용자 리뷰: {len(comprehensive_info['user_reviews'])}개")
+        print(f"  - 이미지: {len(comprehensive_info['images'])}개")
 
         return comprehensive_info
 

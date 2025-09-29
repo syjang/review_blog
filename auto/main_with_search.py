@@ -164,7 +164,7 @@ def research_product(state: BlogState) -> BlogState:
 
 
 def download_images(state: BlogState) -> BlogState:
-    """제품 이미지 다운로드 노드"""
+    """제품 이미지 다운로드 노드 (최신 이미지 우선)"""
     product_name = state.get("product_name", "")
     search_results = state.get("search_results", {})
 
@@ -174,12 +174,26 @@ def download_images(state: BlogState) -> BlogState:
     images = search_results.get("images", [])
 
     if images:
-        # 이미지 다운로드 실행
+        # 최신 이미지를 우선적으로 선택
+        recent_images = [img for img in images if img.get("is_recent", False)]
+        normal_images = [img for img in images if not img.get("is_recent", False)]
+
+        # 최신 이미지가 있으면 최신 이미지 우선, 없으면 일반 이미지 사용
+        priority_images = recent_images + normal_images
+
+        print(f"📊 이미지 우선순위: 최신 이미지 {len(recent_images)}개, 일반 이미지 {len(normal_images)}개")
+
+        # 이미지 다운로드 실행 (우선순위대로)
         downloaded_images = searcher.download_product_images(
-            product_name, images, max_downloads=3
+            product_name, priority_images, max_downloads=3
         )
         state["images"] = downloaded_images
-        print(f"✅ {len(downloaded_images)}개 이미지 다운로드 완료")
+        print(f"✅ {len(downloaded_images)}개 이미지 다운로드 완료 (최신 우선)")
+
+        # 이미지 출처 정보 로깅
+        for i, img in enumerate(downloaded_images):
+            is_recent = "최신" if priority_images[i].get("is_recent") else "일반"
+            print(f"  {i+1}. {img['filename']} ({is_recent} 이미지)")
     else:
         print(f"⚠️ 다운로드할 이미지가 없습니다.")
         state["images"] = []
