@@ -10,6 +10,7 @@ from random import uniform
 import os
 import requests
 import urllib.parse
+import hashlib
 from PIL import Image
 from io import BytesIO
 
@@ -343,7 +344,9 @@ class WebSearcher:
             # 실제 이미지인지 확인
             if not self.is_valid_image_response(response):
                 print(f"❌ 유효하지 않은 이미지 응답: {image_url}")
-                return False, base_filename + ".webp"
+                # URL 기반 해시를 붙여 파일명 충돌 방지
+                hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
+                return False, f"{base_filename}-{hash_suffix}.webp"
 
             # 이미지를 PIL로 열고 WebP로 변환
             try:
@@ -357,9 +360,15 @@ class WebSearcher:
                 elif image.mode != 'RGB':
                     image = image.convert('RGB')
 
-                # WebP 파일명 생성
-                actual_filename = f"{base_filename}.webp"
+                # URL 기반 해시를 붙여 고유 파일명 생성
+                hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
+                actual_filename = f"{base_filename}-{hash_suffix}.webp"
                 filepath = os.path.join(self.image_save_dir, actual_filename)
+
+                # 동일 파일명이 이미 존재하면 재저장하지 않음 (중복 방지)
+                if os.path.exists(filepath):
+                    print(f"ℹ️ 이미 존재하는 이미지, 재사용: {filepath}")
+                    return True, actual_filename
 
                 # WebP 형식으로 저장 (품질 85로 설정하여 크기와 품질 균형)
                 image.save(filepath, 'WEBP', quality=85, optimize=True)
@@ -371,8 +380,14 @@ class WebSearcher:
                 print(f"⚠️ 이미지 변환 실패, 원본으로 저장 시도: {img_error}")
 
                 # PIL 변환 실패시 원본 그대로 저장
-                actual_filename = f"{base_filename}.webp"
+                hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
+                actual_filename = f"{base_filename}-{hash_suffix}.webp"
                 filepath = os.path.join(self.image_save_dir, actual_filename)
+
+                # 동일 파일명이 이미 존재하면 재저장하지 않음 (중복 방지)
+                if os.path.exists(filepath):
+                    print(f"ℹ️ 이미 존재하는 이미지, 재사용: {filepath}")
+                    return True, actual_filename
 
                 with open(filepath, 'wb') as f:
                     f.write(response.content)
@@ -382,7 +397,8 @@ class WebSearcher:
 
         except Exception as e:
             print(f"❌ 이미지 다운로드 실패: {e}")
-            return False, base_filename + ".webp"
+            hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
+            return False, f"{base_filename}-{hash_suffix}.webp"
 
     def get_comprehensive_info(self, product_name: str) -> Dict:
         """
@@ -427,11 +443,17 @@ class WebSearcher:
         print(f"📥 '{product_name}' 이미지 다운로드 시작...")
 
         downloaded_files = []
+        seen_urls = set()
+        seen_filenames = set()
         # 한글 제품명을 영어로 변환
         safe_product_name = self.translate_korean_product_name(product_name)
 
         for i, image in enumerate(images[:max_downloads]):
             if not image.get("url"):
+                continue
+
+            # 동일 URL 중복 방지
+            if image["url"] in seen_urls:
                 continue
 
             # 파일명 생성 (확장자 제외)
@@ -440,6 +462,10 @@ class WebSearcher:
             # 이미지 다운로드 시도 (실제 확장자 포함)
             success, actual_filename = self.download_image(image["url"], base_filename)
             if success:
+                # 동일 파일명 중복 방지
+                if actual_filename in seen_filenames:
+                    seen_urls.add(image["url"])  # 중복 URL도 기록
+                    continue
                 local_path = f"/images/{actual_filename}"
                 downloaded_files.append({
                     "filename": actual_filename,
@@ -447,6 +473,8 @@ class WebSearcher:
                     "original_url": image["url"],
                     "title": image.get("title", "")
                 })
+                seen_urls.add(image["url"])
+                seen_filenames.add(actual_filename)
 
         print(f"✅ 총 {len(downloaded_files)}개 이미지 다운로드 완료")
         return downloaded_files
