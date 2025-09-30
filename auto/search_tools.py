@@ -8,11 +8,6 @@ from typing import List, Dict
 import time
 from random import uniform
 import os
-import requests
-import urllib.parse
-import hashlib
-from PIL import Image
-from io import BytesIO
 
 
 
@@ -21,17 +16,8 @@ class WebSearcher:
 
     def __init__(self):
         # User-Agent 헤더와 타임아웃 설정
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-        }
         self.delay_range = (2.0, 4.0)  # 요청 간 지연 시간 범위 (증가)
         self.max_retries = 3  # 최대 재시도 횟수
-        self.image_save_dir = "../app/public/images"  # 이미지 저장 디렉토리
 
     def _search_with_retry(self, search_func, *args, **kwargs):
         """
@@ -294,27 +280,52 @@ class WebSearcher:
                 if len(all_images) >= max_results * 2:
                     break
 
-            # 최신 이미지와 고해상도 이미지를 우선으로 정렬
-            def sort_by_priority(img):
+            # 응답 속도가 빠른 이미지를 우선으로 정렬
+            def sort_by_speed(img):
                 score = 0
+                url = img.get("url", "").lower()
+
                 # 최신 쿼리로 찾은 이미지는 높은 점수
                 if img.get("is_recent"):
                     score += 10
-                # 고해상도 이미지는 추가 점수
+
+                # WebP 형식 우선 (더 빠른 로딩)
+                if url.endswith('.webp'):
+                    score += 8
+                elif url.endswith('.jpg') or url.endswith('.jpeg'):
+                    score += 5
+                elif url.endswith('.png'):
+                    score += 3
+
+                # 알려진 빠른 CDN 호스트 우선
+                fast_hosts = [
+                    'cloudinary', 'imgur', 'cdn', 'fastly', 'akamai',
+                    'googleusercontent', 'githubusercontent', 'amazonaws'
+                ]
+                if any(host in url for host in fast_hosts):
+                    score += 7
+
+                # 너무 큰 이미지는 피함 (파일 크기가 클 가능성)
                 width = img.get("width", 0)
                 height = img.get("height", 0)
                 resolution = width * height
-                if resolution > 1000000:  # 100만 픽셀 이상
-                    score += 5
-                elif resolution > 500000:  # 50만 픽셀 이상
-                    score += 3
-                elif resolution > 100000:  # 10만 픽셀 이상
+
+                # 적절한 크기 우선 (너무 작지도 너무 크지도 않게)
+                if 200000 < resolution < 2000000:  # 20만~200만 픽셀
+                    score += 6
+                elif 100000 < resolution <= 200000:  # 10만~20만 픽셀
+                    score += 4
+                elif resolution <= 100000:  # 너무 작음
                     score += 1
+
+                # 너무 큰 이미지는 감점
+                if resolution > 4000000:  # 400만 픽셀 이상
+                    score -= 5
 
                 return score
 
-            # 우선순위별로 정렬 후 상위 결과만 반환
-            sorted_images = sorted(all_images, key=sort_by_priority, reverse=True)[:max_results]
+            # 응답 속도 우선순위별로 정렬 후 상위 결과만 반환
+            sorted_images = sorted(all_images, key=sort_by_speed, reverse=True)[:max_results]
 
             print(f"✅ {len(sorted_images)}개 이미지 검색 완료 (최신 우선)")
             return sorted_images
@@ -323,125 +334,6 @@ class WebSearcher:
             print(f"❌ 이미지 검색 오류: {e}")
             return []
 
-    def get_image_extension(self, image_url: str, response) -> str:
-        """
-        이미지 URL과 응답에서 실제 확장자 추출
-        모든 이미지를 WebP로 변환하여 저장
-
-        Args:
-            image_url: 이미지 URL
-            response: HTTP 응답 객체
-
-        Returns:
-            이미지 확장자 (항상 'webp')
-        """
-        # 모든 이미지를 WebP 형식으로 저장
-        return 'webp'
-
-    def is_valid_image_response(self, response) -> bool:
-        """
-        응답이 실제 이미지인지 확인
-
-        Args:
-            response: HTTP 응답 객체
-
-        Returns:
-            이미지인지 여부
-        """
-        # Content-Type 확인
-        content_type = response.headers.get('content-type', '').lower()
-        if not any(img_type in content_type for img_type in ['image/jpeg', 'image/png', 'image/gif', 'image/webp']):
-            return False
-
-        # Content-Length 확인 (너무 작으면 의심)
-        content_length = response.headers.get('content-length')
-        if content_length and int(content_length) < 1000:  # 1KB 미만이면 의심
-            return False
-
-        return True
-
-    def download_image(self, image_url: str, base_filename: str) -> tuple[bool, str]:
-        """
-        이미지 다운로드 및 WebP로 변환
-
-        Args:
-            image_url: 이미지 URL
-            base_filename: 기본 파일명 (확장자 제외)
-
-        Returns:
-            (다운로드 성공 여부, 실제 파일명)
-        """
-        try:
-            # 이미지 저장 디렉토리 생성
-            os.makedirs(self.image_save_dir, exist_ok=True)
-
-            # 이미지 다운로드
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-
-            # GET 요청으로 이미지 다운로드
-            response = requests.get(image_url, headers=headers, timeout=30)
-            response.raise_for_status()
-
-            # 실제 이미지인지 확인
-            if not self.is_valid_image_response(response):
-                print(f"❌ 유효하지 않은 이미지 응답: {image_url}")
-                # URL 기반 해시를 붙여 파일명 충돌 방지
-                hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
-                return False, f"{base_filename}-{hash_suffix}.webp"
-
-            # 이미지를 PIL로 열고 WebP로 변환
-            try:
-                # 바이트 스트림에서 이미지 열기
-                image = Image.open(BytesIO(response.content))
-
-                # RGBA 모드가 아니면 RGB로 변환 (WebP 호환성을 위해)
-                if image.mode in ('RGBA', 'LA'):
-                    # 투명도가 있는 이미지는 그대로 유지
-                    pass
-                elif image.mode != 'RGB':
-                    image = image.convert('RGB')
-
-                # URL 기반 해시를 붙여 고유 파일명 생성
-                hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
-                actual_filename = f"{base_filename}-{hash_suffix}.webp"
-                filepath = os.path.join(self.image_save_dir, actual_filename)
-
-                # 동일 파일명이 이미 존재하면 재저장하지 않음 (중복 방지)
-                if os.path.exists(filepath):
-                    print(f"ℹ️ 이미 존재하는 이미지, 재사용: {filepath}")
-                    return True, actual_filename
-
-                # WebP 형식으로 저장 (품질 85로 설정하여 크기와 품질 균형)
-                image.save(filepath, 'WEBP', quality=85, optimize=True)
-
-                print(f"✅ 이미지 저장 완료 (WebP): {filepath}")
-                return True, actual_filename
-
-            except Exception as img_error:
-                print(f"⚠️ 이미지 변환 실패, 원본으로 저장 시도: {img_error}")
-
-                # PIL 변환 실패시 원본 그대로 저장
-                hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
-                actual_filename = f"{base_filename}-{hash_suffix}.webp"
-                filepath = os.path.join(self.image_save_dir, actual_filename)
-
-                # 동일 파일명이 이미 존재하면 재저장하지 않음 (중복 방지)
-                if os.path.exists(filepath):
-                    print(f"ℹ️ 이미 존재하는 이미지, 재사용: {filepath}")
-                    return True, actual_filename
-
-                with open(filepath, 'wb') as f:
-                    f.write(response.content)
-
-                print(f"✅ 원본 이미지 저장 완료: {filepath}")
-                return True, actual_filename
-
-        except Exception as e:
-            print(f"❌ 이미지 다운로드 실패: {e}")
-            hash_suffix = hashlib.md5(image_url.encode('utf-8')).hexdigest()[:10]
-            return False, f"{base_filename}-{hash_suffix}.webp"
 
     def get_comprehensive_info(self, product_name: str) -> Dict:
         """
@@ -493,27 +385,27 @@ class WebSearcher:
 
         return comprehensive_info
 
-    def download_product_images(self, product_name: str, images: List[Dict], max_downloads: int = 3) -> List[str]:
+    def get_product_images_info(self, product_name: str, images: List[Dict], max_images: int = 3) -> List[Dict]:
         """
-        제품 이미지들을 다운로드
+        제품 이미지 정보를 수집 (다운로드 없이 링크만)
 
         Args:
             product_name: 제품명
             images: 이미지 정보 리스트
-            max_downloads: 최대 다운로드 수
+            max_images: 최대 이미지 수
 
         Returns:
-            다운로드된 이미지 파일명 리스트
+            이미지 정보 딕셔너리 리스트
         """
-        print(f"📥 '{product_name}' 이미지 다운로드 시작...")
+        print(f"🔗 '{product_name}' 이미지 링크 수집 중...")
 
-        downloaded_files = []
+        image_info_list = []
         seen_urls = set()
-        seen_filenames = set()
+
         # 한글 제품명을 영어로 변환
         safe_product_name = self.translate_korean_product_name(product_name)
 
-        for i, image in enumerate(images[:max_downloads]):
+        for i, image in enumerate(images[:max_images]):
             if not image.get("url"):
                 continue
 
@@ -521,28 +413,21 @@ class WebSearcher:
             if image["url"] in seen_urls:
                 continue
 
-            # 파일명 생성 (확장자 제외)
-            base_filename = f"{safe_product_name}-{i+1}"
+            seen_urls.add(image["url"])
 
-            # 이미지 다운로드 시도 (실제 확장자 포함)
-            success, actual_filename = self.download_image(image["url"], base_filename)
-            if success:
-                # 동일 파일명 중복 방지
-                if actual_filename in seen_filenames:
-                    seen_urls.add(image["url"])  # 중복 URL도 기록
-                    continue
-                local_path = f"/images/{actual_filename}"
-                downloaded_files.append({
-                    "filename": actual_filename,
-                    "local_path": local_path,
-                    "original_url": image["url"],
-                    "title": image.get("title", "")
-                })
-                seen_urls.add(image["url"])
-                seen_filenames.add(actual_filename)
+            image_info = {
+                "id": f"{safe_product_name}-{i+1}",
+                "url": image["url"],
+                "title": image.get("title", f"{product_name} 제품 이미지 {i+1}"),
+                "source": image.get("source", "웹 검색"),
+                "is_recent": image.get("is_recent", False),
+                "width": image.get("width", 0),
+                "height": image.get("height", 0)
+            }
+            image_info_list.append(image_info)
 
-        print(f"✅ 총 {len(downloaded_files)}개 이미지 다운로드 완료")
-        return downloaded_files
+        print(f"✅ 총 {len(image_info_list)}개 이미지 링크 수집 완료")
+        return image_info_list
 
     def translate_korean_product_name(self, product_name: str) -> str:
         """

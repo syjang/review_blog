@@ -163,12 +163,12 @@ def research_product(state: BlogState) -> BlogState:
     return state
 
 
-def download_images(state: BlogState) -> BlogState:
-    """제품 이미지 다운로드 노드 (최신 이미지 우선)"""
+def collect_images(state: BlogState) -> BlogState:
+    """제품 이미지 정보 수집 노드 (다운로드 없이 링크만)"""
     product_name = state.get("product_name", "")
     search_results = state.get("search_results", {})
 
-    print(f"🖼️ 제품 이미지 다운로드 중: {product_name}")
+    print(f"🖼️ 제품 이미지 정보 수집 중: {product_name}")
 
     # 검색된 이미지들
     images = search_results.get("images", [])
@@ -183,19 +183,39 @@ def download_images(state: BlogState) -> BlogState:
 
         print(f"📊 이미지 우선순위: 최신 이미지 {len(recent_images)}개, 일반 이미지 {len(normal_images)}개")
 
-        # 이미지 다운로드 실행 (우선순위대로)
-        downloaded_images = searcher.download_product_images(
-            product_name, priority_images, max_downloads=3
+        # 이미지 정보 수집 실행 (다운로드 없이)
+        image_info_list = searcher.get_product_images_info(
+            product_name, priority_images, max_images=3
         )
-        state["images"] = downloaded_images
-        print(f"✅ {len(downloaded_images)}개 이미지 다운로드 완료 (최신 우선)")
+        state["images"] = image_info_list
+        print(f"✅ {len(image_info_list)}개 이미지 정보 수집 완료 (링크만)")
 
-        # 이미지 출처 정보 로깅
-        for i, img in enumerate(downloaded_images):
+        # 이미지 출처 정보 로깅 (상세히)
+        for i, img_info in enumerate(image_info_list):
             is_recent = "최신" if priority_images[i].get("is_recent") else "일반"
-            print(f"  {i+1}. {img['filename']} ({is_recent} 이미지)")
+            url = img_info['url'].lower()
+
+            # 이미지 형식과 호스트 정보 추출
+            if url.endswith('.webp'):
+                format_info = "WebP"
+            elif url.endswith('.jpg') or url.endswith('.jpeg'):
+                format_info = "JPG"
+            elif url.endswith('.png'):
+                format_info = "PNG"
+            else:
+                format_info = "기타"
+
+            # CDN 정보 확인
+            cdn_info = ""
+            fast_hosts = ['cloudinary', 'imgur', 'cdn', 'fastly', 'akamai', 'googleusercontent', 'githubusercontent', 'amazonaws']
+            for host in fast_hosts:
+                if host in url:
+                    cdn_info = f"CDN:{host}"
+                    break
+
+            print(f"  {i+1}. {img_info['title']} ({is_recent}, {format_info}, {cdn_info})")
     else:
-        print(f"⚠️ 다운로드할 이미지가 없습니다.")
+        print(f"⚠️ 수집할 이미지 정보가 없습니다.")
         state["images"] = []
 
     return state
@@ -292,7 +312,7 @@ def format_search_context(search_results: Dict) -> str:
 
 
 def create_markdown(state: BlogState) -> BlogState:
-    """마크다운 파일 생성 (이미지 리뷰 중간 배치)"""
+    """마크다운 파일 생성 (외부 이미지 링크 사용)"""
     current_post = state.get("current_post", {})
     content = current_post.get("content", "")
     product_name = state.get("product_name", "")
@@ -305,8 +325,8 @@ def create_markdown(state: BlogState) -> BlogState:
     sections = split_content_into_sections(content)
     print(f"📊 리뷰 섹션 수: {len(sections)}")
 
-    # 이미지들을 섹션 사이에 배치
-    content_with_images = insert_images_between_sections(sections, images)
+    # 이미지들을 섹션 사이에 배치 (외부 링크 사용)
+    content_with_images = insert_external_images_between_sections(sections, images)
 
     # 참고 링크 생성
     references = "\n\n## 참고 자료\n\n"
@@ -314,23 +334,33 @@ def create_markdown(state: BlogState) -> BlogState:
         for info in search_results["basic_info"][:3]:
             references += f"- [{info['title']}]({info['url']})\n"
 
-    # 이미지 출처 정보
+    # 이미지 출처 정보 (외부 링크이므로 더 상세히)
     if images:
         references += f"\n### 이미지 출처\n"
-        for img in images:
-            references += f"- [이미지 {images.index(img)+1}]({img['original_url']})\n"
+        for i, img in enumerate(images, 1):
+            references += f"- **이미지 {i}**: [{img['title']}]({img['url']}) (출처: {img['source']})\n"
 
     # 제품명을 영어로 변환 (태그용)
     safe_product_name = translate_product_name_for_tags(product_name)
 
     # 마크다운 포맷으로 변환
-    if images and images[0].get("filename"):
-        # 첫 번째 이미지의 실제 파일명 사용
-        primary_image = f"/images/{images[0]['filename']}"
+    if images:
+        # 첫 번째 이미지 사용 (외부 링크)
+        primary_image = images[0]['url']
+        primary_image_alt = images[0]['title']
     else:
-        # 고유번호 기반 기본값
-        unique_id = str(uuid.uuid4())[:8]
-        primary_image = f"/images/review-{unique_id}-1.jpg"
+        # 이미지가 없으면 기본값
+        primary_image = ""
+        primary_image_alt = f"{product_name} 제품 이미지"
+
+    # 메타데이터에 이미지 크레딧 추가
+    image_credit = ""
+    if images:
+        image_credit = f"""
+**사용된 이미지 정보:**
+- 본 리뷰에 사용된 이미지는 웹 검색을 통해 수집된 제품 관련 이미지입니다.
+- 모든 이미지는 원본 출처의 정책을 준수하며, 교육적·정보제공 목적으로만 사용됩니다.
+- 이미지 저작권은 각 원본 사이트에 귀속됩니다."""
 
     markdown_template = f"""---
 title: '{product_name} 리뷰 - 실사용 후기와 장단점'
@@ -339,9 +369,12 @@ excerpt: '{product_name}에 대한 상세한 리뷰와 구매 가이드'
 category: '제품리뷰'
 tags: ['{safe_product_name}', '리뷰', '실사용후기']
 image: '{primary_image}'
+image_alt: '{primary_image_alt}'
 ---
 
 {content_with_images}
+
+{image_credit}
 
 {references}
 
@@ -450,8 +483,8 @@ def split_content_into_sections(content: str) -> List[str]:
     return sections
 
 
-def insert_images_between_sections(sections: List[str], images: List[Dict]) -> str:
-    """섹션 사이에 이미지 배치"""
+def insert_external_images_between_sections(sections: List[str], images: List[Dict]) -> str:
+    """섹션 사이에 외부 이미지 링크 배치"""
     if not images:
         return "\n".join(sections)
 
@@ -469,9 +502,12 @@ def insert_images_between_sections(sections: List[str], images: List[Dict]) -> s
         if images_used < max_images and i <= max_images:
             img = images[images_used]
             image_caption = img.get("title", f"제품 이미지 {images_used + 1}")
-            image_md = f"\n![{image_caption}]({img['local_path']})\n"
-            if img.get("title"):
-                image_md += f"*{img['title']}*\n"
+            # 외부 링크와 대체 텍스트 사용
+            image_md = f"\n![{image_caption}]({img['url']})\n"
+            image_md += f"*{image_caption}*\n"
+            # 이미지 정보 추가 (해상도 등)
+            if img.get("width") and img.get("height"):
+                image_md += f"*(이미지 크기: {img['width']}x{img['height']} 픽셀)*\n"
             result.append(image_md)
             images_used += 1
 
@@ -589,7 +625,7 @@ def create_workflow():
     # 노드 추가
     workflow.add_node("analyze", analyze_task)
     workflow.add_node("research", research_product)  # 웹 검색 노드 추가
-    workflow.add_node("download_images", download_images)  # 이미지 다운로드 노드 추가
+    workflow.add_node("collect_images", collect_images)  # 이미지 정보 수집 노드 추가
     workflow.add_node("generate", generate_content)
     workflow.add_node("review", review_content)
     workflow.add_node("markdown", create_markdown)
@@ -603,8 +639,8 @@ def create_workflow():
         "analyze", should_continue_after_analyze, {"end": END, "research": "research"}
     )
 
-    workflow.add_edge("research", "download_images")  # 리서치 후 이미지 다운로드
-    workflow.add_edge("download_images", "generate")  # 이미지 다운로드 후 생성
+    workflow.add_edge("research", "collect_images")  # 리서치 후 이미지 정보 수집
+    workflow.add_edge("collect_images", "generate")  # 이미지 정보 수집 후 생성
     workflow.add_edge("generate", "review")
 
     # 조건부 엣지
