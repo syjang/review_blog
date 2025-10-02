@@ -72,6 +72,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.naver.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.3dnews.ru',
+      },
     ],
   },
 };
