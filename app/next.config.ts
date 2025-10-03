@@ -66,6 +66,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: '*.coupangcdn.com',
+      },
+      {
+        protocol: 'https',
         hostname: '*.daumcdn.net',
       },
       {
