@@ -80,6 +80,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.3dnews.ru',
       },
+      {
+        protocol: 'https',
+        hostname: '*.ytimg.com',
+      }
     ],
   },
 };
