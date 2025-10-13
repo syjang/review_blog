@@ -6,84 +6,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'cdn.it.chosun.com',
+        hostname: '*',
       },
-      {
-        protocol: 'https',
-        hostname: 'imgnews.pstatic.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.sbs.co.kr',
-      },
-      {
-        protocol: 'https',
-        hostname: 'image.ytn.co.kr',
-      },
-      {
-        protocol: 'https',
-        hostname: 'dimg.donga.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.khan.co.kr',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.jtbc.co.kr',
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.hani.co.kr',
-      },
-      {
-        protocol: 'https',
-        hostname: 'image.mt.co.kr',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.imgur.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.pexels.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.pixabay.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.coupangcdn.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.daumcdn.net',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.naver.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.3dnews.ru',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.ytimg.com',
-      }
     ],
   },
 };
