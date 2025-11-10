@@ -21,6 +21,20 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-slate-700 mt-8 pt-8 text-center">
+          <div className="mb-3 space-x-4 text-sm">
+            <a className="hover:text-white" href="/about">
+              소개
+            </a>
+            <a className="hover:text-white" href="/contact">
+              연락처
+            </a>
+            <a className="hover:text-white" href="/privacy-policy">
+              개인정보처리방침
+            </a>
+            <a className="hover:text-white" href="/review-policy">
+              리뷰 정책
+            </a>
+          </div>
           <p className="text-sm text-slate-400">
             © {currentYear} 리뷰 활짝. All rights reserved.
           </p>

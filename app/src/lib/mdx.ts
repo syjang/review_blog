@@ -17,12 +17,15 @@ export interface Post {
   slug: string;
   title: string;
   date: string;
+  updated?: string;
   excerpt: string;
   content: string;
   readingTime: string;
   tags?: string[];
   coverImage?: string;
   rating?: number;
+  author?: string;
+  noindex?: boolean;
 }
 
 export function getAllPosts(): Post[] {
@@ -44,11 +47,14 @@ export function getAllPosts(): Post[] {
         content,
         title: data.title,
         date: data.date,
+        updated: data.updated,
         excerpt: data.excerpt || content.slice(0, 160) + '...',
         readingTime: stats.text,
         tags: data.tags || [],
         coverImage,
         rating: data.rating,
+        author: data.author,
+        noindex: data.noindex === true,
       };
     });
 
@@ -81,11 +87,14 @@ export function getPostBySlug(slug: string): Post | undefined {
     content,
     title: data.title,
     date: data.date,
+    updated: data.updated,
     excerpt: data.excerpt || content.slice(0, 160) + '...',
     readingTime: stats.text,
     tags: data.tags || [],
     coverImage,
     rating: data.rating,
+    author: data.author,
+    noindex: data.noindex === true,
   };
 }
 
