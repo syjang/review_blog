@@ -226,7 +226,7 @@ export default async function PostPage({ params }: Props) {
         <footer className="mt-16 pt-8 border-t border-gray-200">
           {related.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4">관련 글</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">관련 글</h3>
               <ul className="space-y-2">
                 {related.map((r) => (
                   <li key={r.slug}>
