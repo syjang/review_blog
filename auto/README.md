@@ -1,126 +1,74 @@
-# 🤖 리뷰 활짝 - 자동화 시스템
+## 🤖 리뷰 활짝 - 자동화 시스템 (auto/)
 
-LangGraph를 사용한 블로그 리뷰 자동 생성 시스템입니다.
+LangGraph와 웹 검색을 이용해 블로그 리뷰를 자동 생성하는 시스템입니다.  
+생성된 마크다운은 상위 프로젝트의 `app/posts/` 아래 저장해 블로그에서 바로 사용할 수 있습니다.
 
-## 🚀 시작하기
+### 🚀 시작하기
 
-### 1. 가상환경 활성화
+#### 1. 가상환경 활성화
+
 ```bash
+cd auto
 source venv/bin/activate
 ```
 
-### 2. 환경변수 설정
-`.env` 파일을 생성하고 OpenAI API 키를 설정하세요:
+#### 2. 환경변수 설정
+
+루트(예: `/Users/leo/leo/review_blog/auto`)에 `.env` 파일을 만들고 API 키를 설정합니다.
+
 ```bash
-cp .env.example .env
-# .env 파일을 열어서 OPENAI_API_KEY 입력
+cp .env.example .env  # 없다면 직접 .env 생성
+# .env 파일을 열어서 OPENAI_API_KEY 또는 GOOGLE_API_KEY 입력
 ```
 
-### 3. 실행
+#### 3. 메인 워크플로우 실행 (`main_with_search.py`)
+
+웹 검색 + 이미지 수집 + 마크다운 생성까지 한 번에 수행합니다.
+
 ```bash
-python run_example.py
+python main_with_search.py
 ```
 
-## 📁 프로젝트 구조
+실행 후 콘솔에서:
 
-```
+- 제품명만 입력  
+  예: `갤럭시 S24 울트라`
+
+- **스타일 예시를 지정하고 싶을 때** (MX Master 4 리뷰 스타일 참고)  
+  예: `갤럭시 S24 울트라 @review-mx-master-4-ddc17c.md (1-276)`
+
+`@review-mx-master-4-ddc17c.md (1-276)` 부분은:
+
+- 실제 파일 내용을 읽지는 않고,  
+- `app/posts/review-mx-master-4-ddc17c.md` 글처럼  
+  **구입 배경 → 사용 환경 → 장점/단점 → 비교 → 추천/비추천 → 총평** 흐름과  
+  **사람이 쓴 실사용 후기 같은 톤**을 더 강하게 요구하는 힌트로만 사용됩니다.
+
+### 📁 주요 파일 구조
+
+```text
 auto/
-├── venv/               # Python 가상환경
-├── requirements.txt    # 패키지 의존성
-├── .env               # 환경변수 (API 키)
-├── main.py            # 기본 워크플로우
-├── agents.py          # 특화된 에이전트들
-├── workflows.py       # 다양한 워크플로우
-├── run_example.py     # 실행 예제
-└── outputs/           # 생성된 마크다운 파일
+├── agents.py           # 리서치/작성/편집/SEO/마크다운 에이전트
+├── main_with_search.py # 웹 검색 + 이미지 + 마크다운 통합 워크플로우 (주 사용 진입점)
+├── workflows.py        # LangGraph 기반 다른 워크플로우 예제
+├── search_tools.py     # 웹 검색 및 결과 포맷터
+├── config.py           # 모델 선택/LLM 헬퍼
+├── generated_reviews.json # 이미 생성된 리뷰 메타정보
+├── requirements.txt
+└── venv/
 ```
 
-## 🎯 기능
+### 🎯 리뷰 스타일 (요약)
 
-### 1. 전체 리뷰 워크플로우
-- 제품 리서치
-- 리뷰 작성
-- 편집 및 개선
-- SEO 최적화
-- 마크다운 생성
+`main_with_search.py` 내부에 **MX Master 4 실사용 후기**를 기준으로 정리한 스타일 가이드가 포함되어 있습니다.
 
-### 2. 빠른 리뷰 워크플로우
-- 간단한 리뷰 작성
-- 마크다운 생성
+- 1인칭 시점(“저는…”, “제 기준에서는…”)의 **블로그 후기 톤**
+- **구입 배경 → 사용 환경 → 장점/단점 → 비교 → 추천/비추천 → 총평** 흐름
+- 스펙 나열보다 **어떤 상황에서 무엇이 어떻게 편/불편했는지**를 예시로 설명
+- 가격, 무게, 휴대성, 손 크기/습관 등 **사람마다 갈릴 포인트**도 함께 언급
+- 과장된 광고 문구 대신 **담백하고 솔직한 표현**
+- 모델이 실제로 사용했다고 단정하지 않고  
+  “여러 후기들을 보면…”, “실사용 후기를 종합하면…” 같은 표현 사용
 
-### 3. 에이전트들
-- **ResearchAgent**: 제품 정보 리서치
-- **WriterAgent**: 리뷰 컨텐츠 작성
-- **EditorAgent**: 컨텐츠 편집 및 개선
-- **SEOAgent**: SEO 최적화
-- **MarkdownAgent**: 마크다운 포맷 생성
-
-## 💡 사용 예제
-
-### Python에서 직접 사용
-```python
-from workflows import run_review_workflow
-
-# 리뷰 생성
-result = run_review_workflow("애플 에어팟 프로 2")
-
-# 결과 확인
-if result.get("status") == "completed":
-    markdown = result.get("markdown")
-    print(markdown)
-```
-
-### 대화형 모드
-```bash
-python run_example.py
-# 옵션 3 선택 -> 대화형 모드
-```
-
-## 🔧 커스터마이징
-
-### 새로운 에이전트 추가
-`agents.py`에 새로운 에이전트 클래스를 추가하세요:
-
-```python
-class CustomAgent:
-    def __init__(self):
-        self.llm = ChatOpenAI(...)
-
-    def custom_task(self, data):
-        # 커스텀 작업
-        return result
-```
-
-### 새로운 워크플로우 생성
-`workflows.py`에 새로운 워크플로우를 정의하세요:
-
-```python
-class CustomWorkflow:
-    def create_graph(self):
-        workflow = StateGraph(...)
-        # 노드와 엣지 정의
-        return workflow.compile()
-```
-
-## 📝 생성된 파일
-
-생성된 마크다운 파일은 `outputs/` 폴더에 저장됩니다.
-블로그에 게시하려면 `../app/posts/` 폴더로 복사하세요.
-
-## 🛠️ 문제 해결
-
-### API 키 오류
-`.env` 파일에 올바른 OpenAI API 키가 설정되어 있는지 확인하세요.
-
-### 패키지 오류
-```bash
-pip install -r requirements.txt
-```
-
-## 📚 추가 개발 아이디어
-
-1. **이미지 생성**: DALL-E API로 제품 이미지 생성
-2. **데이터베이스 연동**: 리뷰 히스토리 저장
-3. **스케줄링**: 정기적인 리뷰 자동 생성
-4. **웹 크롤링**: 실제 제품 정보 수집
-5. **다국어 지원**: 영어, 일본어 등 리뷰 생성
+CLI에서 `@review-mx-master-4-ddc17c.md (1-276)`를 붙이면  
+해당 스타일 가이드를 특히 더 강하게 적용하도록 힌트를 주는 효과가 있습니다.

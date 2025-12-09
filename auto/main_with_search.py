@@ -63,6 +63,20 @@ class BlogState(TypedDict):
     local_images: List[dict]
 
 
+# 사람스러운 리뷰 스타일 가이드 (MX Master 4 실사용 후기 스타일 참고)
+HUMAN_REVIEW_STYLE_GUIDE = """
+- 1인칭 시점(‘저는’, ‘제 기준에서는’)으로, 실제로 써 본 사람의 블로그 후기처럼 자연스럽게 씁니다.
+- 먼저 “왜 이 제품을 알아보게 되었는지/사게 되었는지”와 현재 사용 환경(사용 기간, 사용하는 기기 조합, 주요 작업)을 1~2단락으로 풀어줍니다.
+- 장점/단점은 스펙 나열이 아니라, 어떤 상황에서 무엇이 어떻게 편했는지·아쉬웠는지를 구체적인 예시와 함께 설명합니다.
+- 개발/업무/영상 편집/일상 등 실제 작업 흐름 속에서 어떤 부분이 체감되는지 이야기를 섞어 줍니다.
+- 가격, 무게, 휴대성, 손 크기·사용 습관처럼 사람마다 갈릴 수 있는 포인트는 장단점 양쪽에서 균형 있게 다룹니다.
+- 마지막에는 “이런 사람에게 추천 / 이런 사람에게는 굳이 필요 없음”을 정리하고, 한두 문장으로 총평을 남깁니다.
+- 과장된 광고 문구보다는 담백하고 솔직한 표현을 사용합니다.
+- 다만, 모델이 실제로 제품을 사용한 것처럼 단정적으로 말하진 말고,
+  ‘여러 후기들을 보면’, ‘실사용 후기를 종합하면’, ‘제 기준에서라면 이런 부분이 가장 먼저 눈에 들어올 것 같습니다’처럼 표현합니다.
+"""
+
+
 # 리뷰 추적 함수들
 def load_generated_reviews() -> List[Dict]:
     """생성된 리뷰 목록 로드"""
@@ -114,11 +128,45 @@ def add_review_record(product_name: str, filename: str) -> None:
 
 
 # 노드 함수들
+STYLE_REF_PATTERN = re.compile(
+    r"@(?P<filename>[^\s]+)\s*\((?P<start>\d+)\s*-\s*(?P<end>\d+)\)"
+)
+
+
+def extract_style_reference(task: str) -> Dict[str, str]:
+    """태스크 문자열에서 @파일명 (1-276) 형태의 스타일 참조 정보 추출"""
+    if not task:
+        return {}
+    match = STYLE_REF_PATTERN.search(task)
+    if not match:
+        return {}
+    return {
+        "style_file": match.group("filename"),
+        "style_range": f"{match.group('start')}-{match.group('end')}",
+        "style_hint": "example_review",
+    }
+
+
+def strip_style_reference(task: str) -> str:
+    """태스크 문자열에서 스타일 참조 표기 제거"""
+    if not task:
+        return ""
+    return STYLE_REF_PATTERN.sub("", task).strip()
+
+
 def analyze_task(state: BlogState) -> BlogState:
     """작업 분석 및 제품명 추출"""
     task = state.get("task", "")
 
     print(f"📋 작업 분석 중: {task}")
+
+    # 스타일 참조 정보 추출 (@review-mx-master-4-ddc17c.md (1-276) 형태)
+    style_ref = extract_style_reference(task)
+    if style_ref:
+        state["style_reference"] = style_ref
+
+    # 스타일 참조 표기는 제품명 분석 대상에서 제거
+    task_for_product = strip_style_reference(task)
 
     # 제품명 추출 (간단한 방법)
     # 실제로는 더 정교한 NER이나 패턴 매칭 사용
@@ -134,10 +182,13 @@ def analyze_task(state: BlogState) -> BlogState:
     ]
 
     product_name = ""
+    # MX Master 같은 제품도 조금 더 잘 잡도록 범용 키워드 추가
+    product_keywords.extend(["로지텍", "로지텍 MX", "MX", "마스터"])
+
     for keyword in product_keywords:
-        if keyword in task:
+        if keyword in task_for_product:
             # 전체 제품명 추출 시도
-            words = task.split()
+            words = task_for_product.split()
             for i, word in enumerate(words):
                 if keyword in word:
                     # 주변 단어들도 포함
@@ -149,8 +200,10 @@ def analyze_task(state: BlogState) -> BlogState:
                 break
 
     if not product_name:
-        # 기본값으로 전체 태스크 사용
-        product_name = task.replace("리뷰", "").replace("작성", "").strip()
+        # 기본값으로 전체 태스크(스타일 참조 제거본) 사용
+        product_name = (
+            task_for_product.replace("리뷰", "").replace("작성", "").strip()
+        )
 
     state["product_name"] = product_name
     state["product_slug"] = slugify(product_name)
@@ -303,20 +356,33 @@ def generate_content(state: BlogState) -> BlogState:
         제품의 일반적인 특징과 사용자들이 자주 언급하는 내용을 바탕으로 리뷰를 구성하세요.
         """
 
-    # LLM을 사용해 컨텐츠 생성 (품질 규격 강화)
-    system_prompt = """
-    당신은 리뷰 블로그 '리뷰 활짝'의 컨텐츠 작성자입니다.
-    제공된 검색 결과와 공개 정보를 바탕으로 상세한 제품 분석 리뷰를 작성해주세요.
-    최소 2,000자 이상으로 작성하고, 구체적인 수치(무게/배터리/가격 등 최소 5개)를 반드시 포함하세요.
+    # LLM을 사용해 컨텐츠 생성 (사람이 쓴 후기 같은 톤 + 품질 규격)
+    style_ref = state.get("style_reference", {}) or {}
+    style_note = ""
+    if style_ref.get("style_hint") == "example_review":
+        # 사용자가 @review-... (1-276) 형태로 스타일 예시를 지정한 경우
+        style_note = """
+        추가 스타일 힌트:
+        - 사용자가 지정한 예시 리뷰처럼,
+          "구입 배경 → 사용 환경 → 장점/단점 → 비교 → 추천/비추천 → 총평" 흐름이 자연스럽게 이어지도록 작성하세요.
+        """
 
-    중요:
-    - 실제 사용 경험이 없으므로 "직접 사용", "한 달 실사용", "체험" 등의 표현을 사용하지 마세요
-    - 대신 "공개된 정보에 따르면", "사용자 리뷰 분석", "스펙 분석 결과" 등의 표현을 사용하세요
-    - 출시되지 않은 제품의 경우 "예상", "루머", "출시 예정" 등을 명확히 표시하세요
+    system_prompt = f"""
+    당신은 리뷰 블로그 '리뷰 활짝'의 메인 필진입니다.
+    아래 스타일 가이드를 따라, 사람이 직접 써 내려간 것 같은 한국어 리뷰를 작성하세요.
 
-    리뷰 구조(헤딩은 반드시 아래 형식 준수):
-    ### 제품 소개
-    ### 주요 특징
+    [스타일 가이드]
+    {HUMAN_REVIEW_STYLE_GUIDE}
+    {style_note}
+
+    작성 규칙:
+    - 전체 분량은 최소 1,500자 이상으로 합니다.
+    - 문단마다 구체적인 상황(어떤 환경, 어떤 작업, 어떤 유형의 사용자)을 상상해서 예시를 들어주세요.
+    - 너무 딱딱한 기술 문서 느낌이 아니라, 블로그에 올리는 긴 후기 느낌으로 작성하세요.
+
+    구조(헤딩은 반드시 이 이름을 사용):
+    ### 제품 소개 & 구입 배경
+    ### 사용 환경 정리
     ### 장점
     - 3가지 이상, 각각 2문장 이상
     ### 단점
@@ -324,21 +390,33 @@ def generate_content(state: BlogState) -> BlogState:
     ### 경쟁 제품 비교
     - 최소 2개 제품과 표(마크다운 테이블) 또는 불릿 비교 (차이점/대상)
     ### 가격 및 구매 팁
-    - 최신 가격대 범위와 실구매 팁(프로모션/구성)
     ### FAQ
     - 최소 4개 질문/답변 (각 2문장 이상)
     ### 총평 및 추천 대상
 
-    마케팅 문구는 피하고, 객관적인 정보와 사용자 평가를 중심으로 작성하세요.
+    중요:
+    - 공개된 정보와 다수 사용자 후기를 바탕으로 쓰되,
+      모델이 실제로 제품을 사용했다고 단정하는 표현(예: "제가 3주 동안 직접 써보니")은 피하세요.
+    - 대신 "여러 후기들을 보면", "실사용 후기를 종합하면", "제 기준에서라면 이런 부분이 먼저 눈에 들어옵니다"처럼 표현해 주세요.
+    - 마케팅 문구보다는 솔직한 장단점과 누가 쓸 때 좋은지에 집중합니다.
     """
+
+    cleaned_task = strip_style_reference(task)
+    if not cleaned_task:
+        cleaned_task = f"{product_name}에 대한 리뷰를 작성해 주세요."
 
     user_prompt = f"""
     제품: {product_name}
 
-    수집된 정보:
+    당신의 역할:
+    - 위 제품에 대해, 웹에서 수집된 정보와 사용자 후기를 바탕으로
+      블로그 '리뷰 활짝'에 올라갈 장문 리뷰를 작성합니다.
+
+    수집된 정보 요약:
     {context}
 
-    위 정보를 바탕으로 {task}
+    글의 목적:
+    - {cleaned_task}
     """
 
     # 네트워크/키 미제공 시 LLM 비활성화 모드 지원
@@ -981,6 +1059,7 @@ def main():
     # 사용자 입력 받기
     print("제품 리뷰를 작성할 제품을 입력하세요.")
     print("예시: 갤럭시 S24 울트라, 에어팟 프로 2, 다이슨 V15")
+    print("스타일을 예시 리뷰에 맞추고 싶다면 '@review-mx-master-4-ddc17c.md (1-276)' 처럼 끝에 붙여도 됩니다.")
     product_input = input("\n제품명: ").strip()
 
     if not product_input:
