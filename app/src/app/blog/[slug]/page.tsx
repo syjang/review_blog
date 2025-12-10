@@ -118,7 +118,10 @@ export default async function PostPage({ params }: Props) {
         {JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Review",
-          itemReviewed: { "@type": "Product", name: post.title },
+          itemReviewed: {
+            "@type": "Thing",
+            name: post.title,
+          },
           author: { "@type": "Person", name: post.author || "리뷰 활짝" },
           datePublished: post.date,
           dateModified: post.updated || post.date,
@@ -226,7 +229,9 @@ export default async function PostPage({ params }: Props) {
         <footer className="mt-16 pt-8 border-t border-gray-200">
           {related.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900">관련 글</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">
+                관련 글
+              </h3>
               <ul className="space-y-2">
                 {related.map((r) => (
                   <li key={r.slug}>
