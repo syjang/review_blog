@@ -379,6 +379,8 @@ def generate_content(state: BlogState) -> BlogState:
     - 전체 분량은 최소 1,500자 이상으로 합니다.
     - 문단마다 구체적인 상황(어떤 환경, 어떤 작업, 어떤 유형의 사용자)을 상상해서 예시를 들어주세요.
     - 너무 딱딱한 기술 문서 느낌이 아니라, 블로그에 올리는 긴 후기 느낌으로 작성하세요.
+    - \"완벽 가이드\", \"특징, 장단점, 가격 비교\", \"총정리\" 같은 상투적인 카피나 광고 문구는 사용하지 마세요.
+    - \"여러 후기들을 종합하면\"처럼 정보를 모아서 재정리한 느낌보다는, 한 사람의 시점에서 겪은 경험을 자연스럽게 풀어 쓰세요.
 
     구조(헤딩은 반드시 이 이름을 사용):
     ### 제품 소개 & 구입 배경
@@ -395,10 +397,8 @@ def generate_content(state: BlogState) -> BlogState:
     ### 총평 및 추천 대상
 
     중요:
-    - 공개된 정보와 다수 사용자 후기를 바탕으로 쓰되,
-      모델이 실제로 제품을 사용했다고 단정하는 표현(예: "제가 3주 동안 직접 써보니")은 피하세요.
-    - 대신 "여러 후기들을 보면", "실사용 후기를 종합하면", "제 기준에서라면 이런 부분이 먼저 눈에 들어옵니다"처럼 표현해 주세요.
-    - 마케팅 문구보다는 솔직한 장단점과 누가 쓸 때 좋은지에 집중합니다.
+        - 공통 템플릿·상품 소개 페이지 느낌을 줄이고 “실사용기/내 경험 위주” 톤으로 작성하세요.
+        - 제목, 소제목, 본문 어디에서도 가격 비교 사이트·쇼핑몰 가이드 같은 인상을 주지 않도록 하세요.
     """
 
     cleaned_task = strip_style_reference(task)
@@ -409,8 +409,8 @@ def generate_content(state: BlogState) -> BlogState:
     제품: {product_name}
 
     당신의 역할:
-    - 위 제품에 대해, 웹에서 수집된 정보와 사용자 후기를 바탕으로
-      블로그 '리뷰 활짝'에 올라갈 장문 리뷰를 작성합니다.
+    - 위 제품에 대해, 웹에서 수집된 정보와 사용자 후기를 바탕으로 내가쓴것처럼 고쳐서
+      블로그에 올라갈 장문 리뷰를 작성합니다.
 
     수집된 정보 요약:
     {context}
@@ -853,13 +853,12 @@ def build_unique_title(product_name: str) -> str:
     """제목 패턴을 다양화"""
     import random
     patterns = [
-        f"{product_name} 리뷰: 상세 분석과 구매 가이드",
-        f"{product_name} 완벽 가이드: 특징, 장단점, 가격 비교",
-        f"{product_name} 총정리: 성능부터 가성비까지",
-        f"{product_name} 심층 리뷰: 장점과 단점 분석",
-        f"{product_name} 구매 전 필독: 스펙과 실사용 팁",
-        f"{product_name} 분석: 특징·가격·경쟁 제품 비교",
-        f"{product_name} 완전 분석: 구매 가이드와 추천 대상",
+        f"{product_name} 2주 실사용기: 써보면서 느낀 점",
+        f"{product_name} 한 달 사용 후기: 장단점 솔직 정리",
+        f"{product_name} 실사용 후기: 내 사용 환경 기준 이야기",
+        f"{product_name} 써보니 어땠나: 좋은 점과 아쉬운 점",
+        f"{product_name} 메인 장비로 써 본 솔직 후기",
+        f"{product_name} 사용기: 어떤 사람에게 잘 맞을까?",
     ]
     return random.choice(patterns)
 
@@ -868,12 +867,12 @@ def build_excerpt(product_name: str) -> str:
     """excerpt 패턴을 다양화"""
     import random
     patterns = [
-        f"{product_name}의 주요 특징, 장단점, 가격 정보와 구매 팁 총정리",
-        f"{product_name} 스펙 분석과 경쟁 제품 비교, 추천 대상 안내",
-        f"{product_name}의 성능과 특징, 가격대별 옵션 상세 분석",
-        f"{product_name} 완벽 가이드: 특징부터 구매 팁까지",
-        f"{product_name}의 핵심 기능과 장단점, 가격 비교 정보",
-        f"{product_name} 종합 분석: 스펙, 가격, 사용자 평가",
+        f"{product_name}를 실제로 사용해 보며 느낀 핵심 장단점과 사용 팁을 정리했습니다.",
+        f"{product_name}를 일상에서 써 본 경험을 바탕으로, 어떤 점이 좋았고 아쉬웠는지 솔직하게 정리했습니다.",
+        f"{product_name}를 출퇴근·작업·여가에 쓰면서 체감한 포인트들을 사용 환경과 함께 설명합니다.",
+        f"{product_name}를 고민하는 분들을 위해 구입 배경, 사용 환경, 추천 대상까지 한 번에 정리했습니다.",
+        f"{product_name}의 실제 사용 경험을 중심으로 기능·편의성·가성비를 이야기합니다.",
+        f"{product_name}가 나에게 맞는지 판단할 수 있도록 체감 위주의 후기를 정리했습니다.",
     ]
     return random.choice(patterns)
 
